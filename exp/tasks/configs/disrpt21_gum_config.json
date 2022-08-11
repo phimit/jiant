@@ -1,0 +1,12 @@
+{
+  "task": "disrpt21_gum",
+  "paths": {
+    "train": "/home/muller/Install/jiant/exp/tasks/data/disrpt21/eng.rst.gum/eng.rst.gum_train.conllu",
+    "val": "/home/muller/Install/jiant/exp/tasks/data/disrpt21/eng.rst.gum/eng.rst.gum_dev.conllu",
+    "test": "/home/muller/Install/jiant/exp/tasks/data/disrpt21/eng.rst.gum/eng.rst.gum_test.conllu"
+  },
+  "name": "disrpt21_gum",
+  "kwargs": {
+    "corpus":"eng.rst.gum"
+  }
+}
