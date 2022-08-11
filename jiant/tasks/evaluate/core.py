@@ -1115,7 +1115,8 @@ def get_evaluation_scheme_for_task(task) -> BaseEvaluationScheme:
         return MLMPremaskedEvaluationScheme()
     elif isinstance(task, (tasks_retrieval.QAMRTask, tasks_retrieval.QASRLTask)):
         return SpanPredictionF1andEMScheme()
-    elif isinstance(task, (tasks_retrieval.UdposTask, tasks_retrieval.PanxTask)):
+    # modified for Disrpt21 testing / Philippe Muller / 22/08/09
+    elif isinstance(task, (tasks_retrieval.UdposTask, tasks_retrieval.PanxTask, tasks_retrieval.DisrptGum)):
         return F1TaggingEvaluationScheme()
     elif isinstance(task, tasks_retrieval.Bucc2018Task):
         return Bucc2018EvaluationScheme()

@@ -88,6 +88,9 @@ from jiant.tasks.lib.arct import ArctTask
 from jiant.tasks.lib.winogrande import WinograndeTask
 from jiant.tasks.lib.piqa import PiqaTask
 
+# added (PM 220809)
+from jiant.tasks.lib.disrpt21.disrpt21_gum import DisrptGum
+
 from jiant.tasks.core import Task
 from jiant.utils.python.io import read_json
 
@@ -179,6 +182,9 @@ TASK_DICT = {
     "arct": ArctTask,
     "winogrande": WinograndeTask,
     "piqa": PiqaTask,
+    # new added tasks
+    # just for testing, this will be en-gum with sentence information
+    "disrpt21_gum": DisrptGum,
 }
 
 
