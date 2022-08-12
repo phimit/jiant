@@ -1,0 +1,5 @@
+{
+  "train": "./cache/panx_en/train",
+  "val": "./cache/panx_en/val",
+  "val_labels": "./cache/panx_en/val_labels"
+}
