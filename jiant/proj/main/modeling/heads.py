@@ -12,6 +12,7 @@ from jiant.shared.model_resolution import ModelArchitectures
 from jiant.tasks.core import TaskTypes
 from typing import Callable
 from typing import List
+import json
 
 """
 In HuggingFace/others, these heads differ slightly across different encoder models.
@@ -136,6 +137,8 @@ class SpanComparisonHead(BaseHead):
         return logits
 
 
+# PM : modified to add a RNN on top instead of just a projection layer
+# necessary information is stored in task object, cf task definition class
 @JiantHeadFactory.register([TaskTypes.TAGGING])
 class TokenClassificationHead(BaseHead):
     def __init__(self, task, hidden_size, hidden_dropout_prob, **kwargs):
@@ -143,11 +146,29 @@ class TokenClassificationHead(BaseHead):
         super().__init__()
         self.num_labels = len(task.LABELS)
         self.dropout = nn.Dropout(hidden_dropout_prob)
-        self.classifier = nn.Linear(hidden_size, self.num_labels)
+        self.classif_type = task.classif_type
+        if task.classif_type=="simple":
+            self.classifier = nn.Linear(hidden_size, self.num_labels)
+        else:# recurrent_layer
+            cfg = task.rnn_cfg
+            #print(f"rnn cfg: {cfg}")
+            self.rnn = task.RNN_MODULES[task.rnn_type](input_size=hidden_size,**cfg)
+            output_size = cfg["hidden_size"]
+            self.projection = nn.Linear(output_size, self.num_labels)
 
+    # original simple version alone
+    # def forward(self, unpooled):
+    #     unpooled = self.dropout(unpooled)   
+    #     logits = self.classifier(unpooled)
+    #     return logits
+    
     def forward(self, unpooled):
         unpooled = self.dropout(unpooled)
-        logits = self.classifier(unpooled)
+        if self.classif_type =="simple":
+            logits = self.classifier(unpooled)
+        else:# rnn
+            outputs, hn_cn = self.rnn(unpooled)
+            logits = self.projection(outputs)
         return logits
 
 

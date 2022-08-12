@@ -139,18 +139,6 @@ class Batch(BatchMixin):
 
 
 
-# prototype modification
-recurrent_modules = {
-    "lstm": nn.LSTM,
-    "gru": nn.GRU,
-}
-
-lstm_cfg = {
-    "hidden_size": 100,
-    "bidirectional": False,
-    
-}
-
 class DisrptGum(Task):
 
     Example = Example
@@ -162,37 +150,43 @@ class DisrptGum(Task):
     LABELS = ["_","BeginSeg=Yes"]
     LABEL_TO_ID, ID_TO_LABEL = labels_to_bimap(LABELS)
 
-    # PM TODO: we could reproduce panx subtask system here by giving a language
+    RNN_MODULES = {
+        "lstm": nn.LSTM,
+        "gru": nn.GRU,
+    }   
+
+    # PM TODO: 
+    # - we reproduce panx subtask system here by giving a corpus name 
     # this influence the reading part too
-    # for now, we set the default to "en" to avoid problem downstream
-    # it should be not language but corpus though (eg eng.rst.gum)
+    # for now, we set the default to gum to avoid problem downstream
+    # - To modify the head (just a projection, we might want to add an LSTM): add parameters in config, 
+    # declare them here. When the head is created, it has access to the task -> create the model from the task config
+    # it's the easiest way to propagate task config to the task head
+    # - can it be done for backbone too ? unlikely but must be checked 
     def __init__(self, name, path_dict, corpus="eng.rst.gum",**kwargs):
+        """default constructor argument are path_dict to train/val/test and name of task
+        
+        additional for segmentation (may be in kwargs): 
+           - corpus origin if we want to automate training every one of them at once (not implemented); explicit argument but must be in kwargs of config
+           - recurrent_layer = None/lstm/gru
+           - if previous arg is not none, will use an argument "rnn_config", which contains at least a "hidden_size" argument, and 
+             may have also all RNN constructor optional argument (eg bidirectional, cf torch documentation)
+        """
         super().__init__(name=name, path_dict=path_dict)
         self.corpus = corpus
-        print(self.__dict__)
         ## here we should overrides TAGGING init to add a RNN if we want
         ## (not so simple ... check how TAGGING is called at TASK creation + what goes to the HEAD -> how to override the head ?)
-        # recurrent_layer = kwargs.get("recurrent_layer",None)
-        # if recurrent_layer:
-        #     # kwargs should have also rnn_config, with at least its own hidden_size (cf above)
-        #     #     
-        #     self.rnn = recurrent_modules[recurrent_layer](input_size=hidden_size,**kwargs["rnn_config"])
-        #     output_size = kwargs["rnn_config"]["hidden_size"]
-        #     self.projection = nn.Linear(output_size, self.num_labels)
-        #     self.classif_type = "recurrent_layer"
-        # else:
-        #     self.classif_type = "simple"
-        #     self.classifier = nn.Linear(hidden_size, self.num_labels)
-    
-
-    # def forward(self, unpooled):
-    #     unpooled = self.dropout(unpooled)
-    #     # if self.classif_type =="simple":
-    #     logits = self.classifier(unpooled)
-    #     # else:# rnn
-    #     #     outputs, hn_cn = self.rnn(unpooled)
-    #     #     logits = self.classifier(outputs)
-    #     return logits
+        recurrent_layer = kwargs.get("recurrent_layer")
+        if recurrent_layer != "None": 
+            self.rnn_type = recurrent_layer
+            self.rnn_cfg = kwargs["rnn_config"]                          
+            #self.rnn = recurrent_modules[recurrent_layer](input_size=hidden_size,**kwargs["rnn_config"])
+            #output_size = kwargs["rnn_config"]["hidden_size"]
+            #self.projection = nn.Linear(output_size, self.num_labels)
+            self.classif_type = "recurrent_layer"
+        else:
+            self.classif_type = "simple"
+        print(self.__dict__)
 
 
 
