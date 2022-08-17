@@ -152,8 +152,9 @@ class TokenClassificationHead(BaseHead):
         else:# recurrent_layer
             cfg = task.rnn_cfg
             #print(f"rnn cfg: {cfg}")
+            D = 2 if cfg["bidirectional"] else 1
             self.rnn = task.RNN_MODULES[task.rnn_type](input_size=hidden_size,**cfg)
-            output_size = cfg["hidden_size"]
+            output_size = D*cfg["hidden_size"]
             self.projection = nn.Linear(output_size, self.num_labels)
 
     # original simple version alone
