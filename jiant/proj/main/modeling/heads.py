@@ -142,7 +142,10 @@ class SpanComparisonHead(BaseHead):
 @JiantHeadFactory.register([TaskTypes.TAGGING])
 class TokenClassificationHead(BaseHead):
     def __init__(self, task, hidden_size, hidden_dropout_prob, **kwargs):
-        """From RobertaForTokenClassification"""
+        """From RobertaForTokenClassification
+        
+        dropout_prob should be passed on from config to lstm ? or separate (as now)
+        """
         super().__init__()
         self.num_labels = len(task.LABELS)
         self.dropout = nn.Dropout(hidden_dropout_prob)
@@ -164,8 +167,8 @@ class TokenClassificationHead(BaseHead):
     #     return logits
     
     def forward(self, unpooled):
-        unpooled = self.dropout(unpooled)
         if self.classif_type =="simple":
+            unpooled = self.dropout(unpooled)
             logits = self.classifier(unpooled)
         else:# rnn
             outputs, hn_cn = self.rnn(unpooled)
