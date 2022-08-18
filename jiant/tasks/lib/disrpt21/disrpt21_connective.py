@@ -46,7 +46,7 @@ class Example(BaseExample):
                 tokenized = [tokenizer.unk_token]
             all_tokenized_tokens += tokenized
             padding_length = len(tokenized) - 1
-            labels += [Disrpt.LABEL_TO_ID.get(label, None)] + [None] * padding_length
+            labels += [DisrptConnTask.LABEL_TO_ID.get(label, None)] + [None] * padding_length
             label_mask += [1] + [0] * padding_length
 
         return TokenizedExample(
@@ -139,7 +139,10 @@ class Batch(BatchMixin):
 
 
 
-class DisrptTask(Task):
+class DisrptConnTask(Task):
+    """pdtb-style connective detection in Disrpt shared task format
+    todo: register task (task/retrieval + add evaluation evaluate/core (F1)
+    """
 
     Example = Example
     TokenizedExample = Example
@@ -147,7 +150,7 @@ class DisrptTask(Task):
     Batch = Batch
 
     TASK_TYPE = TaskTypes.TAGGING
-    LABELS = ["_","BeginSeg=Yes"]
+    LABELS = ["_","Seg=B-Conn","Seg=I-Conn"]
     LABEL_TO_ID, ID_TO_LABEL = labels_to_bimap(LABELS)
 
     RNN_MODULES = {
@@ -163,11 +166,14 @@ class DisrptTask(Task):
     # declare them here. When the head is created, it has access to the task -> create the model from the task config
     # it's the easiest way to propagate task config to the task head
     # - can it be done for backbone too ? unlikely but must be checked 
-    def __init__(self, name, path_dict, corpus="eng.rst.gum",**kwargs):
+    def __init__(self, name, path_dict, corpus="eng.rst.gum",format="conllu",**kwargs):
         """default constructor argument are path_dict to train/val/test and name of task
         
         additional for segmentation (may be in kwargs): 
            - corpus origin if we want to automate training every one of them at once (not implemented); explicit argument but must be in kwargs of config
+           - format: conllu/plain: (not used) if we want to load plain format corpus, we'll need to 
+             add a presegmenter when loading to avoid long sequence to crash transformers
+             other option is to just generate a separate pre-segmented corpus (eg with ersatz)
            - recurrent_layer = None/lstm/gru
            - if previous arg is not none, will use an argument "rnn_config", which contains at least a "hidden_size" argument, and 
              may have also all RNN constructor optional argument (eg bidirectional, cf torch documentation)
@@ -210,6 +216,8 @@ class DisrptTask(Task):
             2 = token
             3-9 = empty "_" or syntax info (lemma/supertag/postag/... etc)
             10 has segmentation label + info for syntax/deep syntax all separated by "|"
+
+            set_type = train/test/dev if it makes any difference
         """
         curr_token_list, curr_label_list = [], []
         data_lines = read_file_lines(data_path, "r", encoding="utf-8")
