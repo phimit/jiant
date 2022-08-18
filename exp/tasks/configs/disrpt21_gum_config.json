@@ -1,12 +1,20 @@
 {
-  "task": "disrpt21_gum",
+  "task": "disrpt21",
   "paths": {
-    "train": "/home/muller/Install/jiant/exp/tasks/data/disrpt21/eng.rst.gum/eng.rst.gum_train.conllu",
-    "val": "/home/muller/Install/jiant/exp/tasks/data/disrpt21/eng.rst.gum/eng.rst.gum_dev.conllu",
-    "test": "/home/muller/Install/jiant/exp/tasks/data/disrpt21/eng.rst.gum/eng.rst.gum_test.conllu"
+    "train": "/home/muller/Devel/jiant/exp/tasks/data/disrpt21/eng.rst.gum/eng.rst.gum_train.conllu",
+    "val": "/home/muller/Devel/jiant/exp/tasks/data/disrpt21/eng.rst.gum/eng.rst.gum_dev.conllu",
+    "test": "/home/muller/Devel/jiant/exp/tasks/data/disrpt21/eng.rst.gum/eng.rst.gum_test.conllu"
   },
   "name": "disrpt21_gum",
   "kwargs": {
-    "corpus":"eng.rst.gum"
+    "corpus":"eng.rst.gum",
+    "recurrent_layer": "lstm",
+    "rnn_config": {
+        "hidden_size":100,
+        "bidirectional":true,
+        "batch_first":true,
+        "bias":false,
+	      "dropout":0.5
+    }
   }
 }

@@ -23,7 +23,7 @@ TASK_NAME = "disrpt21_gum disrpt21_rstdt"
 HF_PRETRAINED_MODEL_NAME = "bert-base-multilingual-uncased"#"roberta-base"
 MODEL_NAME = HF_PRETRAINED_MODEL_NAME.split("/")[-1]
 RUN_NAME = f"simple_{TASK_NAME}_{MODEL_NAME}"
-EXP_DIR = "/home/muller/Install/jiant/exp"
+EXP_DIR = "/home/muller/Devel/jiant/exp"
 DATA_DIR = os.path.join(EXP_DIR,"tasks")
 
 # testing the data reader
@@ -66,23 +66,25 @@ else:
         task_cache_base_path="./cache",
         train_task_name_list=TASK_NAME.split(),
         val_task_name_list=TASK_NAME.split(),
-        train_batch_size=64,
+        train_batch_size=64, # tony = 2!
         eval_batch_size=8,
         epochs=30,
-        num_gpus=2,
+        num_gpus=1,
     ).create_config()
     os.makedirs(os.path.join(EXP_DIR,"run_configs/"), exist_ok=True)
     py_io.write_json(jiant_run_config,os.path.join(EXP_DIR,"run_configs/jiant_run_config.json"))
     display.show_json(jiant_run_config)
 
+    print("looking for model at : ",os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"model/model.p"))
+
     run_args = main_runscript.RunConfiguration(
         jiant_task_container_config_path=os.path.join(EXP_DIR,"run_configs/jiant_run_config.json"),
         output_dir="./runs/run1",
         hf_pretrained_model_name_or_path=HF_PRETRAINED_MODEL_NAME,
-        model_path=os.path.join(EXP_DIR,"models/bert-base-multilingual-uncased/model/model.p"),
-        model_config_path=os.path.join(EXP_DIR,"models/bert-base-multilingual-uncased/config.json"),
-        learning_rate=1e-5,
-        eval_every_steps=500,
+        model_path=os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"model/model.p"),
+        model_config_path=os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"/config.json"),
+        learning_rate=1e-5, # tony = 1e-3
+        eval_every_steps=100,
         write_val_preds=True,
         do_train=True,
         do_val=True,

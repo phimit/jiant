@@ -15,6 +15,7 @@ from jiant.tasks.lib.ccg import CCGTask
 from jiant.tasks.lib.cola import ColaTask
 from jiant.tasks.lib.commitmentbank import CommitmentBankTask
 from jiant.tasks.lib.commonsenseqa import CommonsenseQATask
+from .lib.disrpt21.disrpt21_connective import DisrptConnTask
 from jiant.tasks.lib.edge_probing.nonterminal import NonterminalTask
 from jiant.tasks.lib.copa import CopaTask
 from jiant.tasks.lib.edge_probing.coref import CorefTask
@@ -88,8 +89,9 @@ from jiant.tasks.lib.arct import ArctTask
 from jiant.tasks.lib.winogrande import WinograndeTask
 from jiant.tasks.lib.piqa import PiqaTask
 
-# added (PM 220809)
-from jiant.tasks.lib.disrpt21.disrpt21_gum import DisrptGum
+# added (PM 2022/08)
+from jiant.tasks.lib.disrpt21.disrpt21 import DisrptTask
+from jiant.tasks.lib.disrpt21.disrpt21_connective import DisrptConnTask
 
 from jiant.tasks.core import Task
 from jiant.utils.python.io import read_json
@@ -183,8 +185,10 @@ TASK_DICT = {
     "winogrande": WinograndeTask,
     "piqa": PiqaTask,
     # new added tasks
-    # just for testing, this will be en-gum with sentence information
-    "disrpt21_gum": DisrptGum,
+    # disrpt segment & connective
+    "disrpt21": DisrptTask,
+    "disrpt21_conn": DisrptConnTask
+
 }
 
 
