@@ -147,7 +147,10 @@ class DisrptTask(Task):
     Batch = Batch
 
     TASK_TYPE = TaskTypes.TAGGING
-    LABELS = ["_","BeginSeg=Yes"]
+    # normalized during data reading to match sequence tagging assumption (BIO or sth like it)
+    LABELS = ["O","B-Seg"]
+    # original corresponding labels
+    ORIG_LABELS = ["_","BeginSeg=Yes"]
     LABEL_TO_ID, ID_TO_LABEL = labels_to_bimap(LABELS)
 
     RNN_MODULES = {
@@ -229,7 +232,7 @@ class DisrptTask(Task):
                     _, token, *useless, labels = data_line.split("\t")
                     label_set = set(labels.split("|"))
                     # 0 = _, 1 = segment boudary
-                    if cls.LABELS[1] in label_set:
+                    if cls.ORIG_LABELS[1] in label_set:
                         label = cls.LABELS[1]
                     else:
                         label = cls.LABELS[0]
