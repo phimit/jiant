@@ -150,7 +150,9 @@ class DisrptConnTask(Task):
     Batch = Batch
 
     TASK_TYPE = TaskTypes.TAGGING
-    LABELS = ["_","Seg=B-Conn","Seg=I-Conn"]
+    # normalized to follow BIO-like scheme, assumed by jiant evaluation 
+    LABELS =      ["O","B-Conn","I-Conn"]
+    ORIG_LABELS = ["_","Seg=B-Conn","Seg=I-Conn"]
     LABEL_TO_ID, ID_TO_LABEL = labels_to_bimap(LABELS)
 
     RNN_MODULES = {
@@ -231,9 +233,12 @@ class DisrptConnTask(Task):
                 else:
                     _, token, *useless, labels = data_line.split("\t")
                     label_set = set(labels.split("|"))
-                    # 0 = _, 1 = segment boudary
-                    if cls.LABELS[1] in label_set:
+                    # 0 = _, 1 = B-conn, 2=I-conn
+                    # that should be made simpler 
+                    if cls.ORIG_LABELS[1] in label_set:
                         label = cls.LABELS[1]
+                    elif cls.ORIG_LABELS[2] in label_set:
+                        label = cls.LABELS[2]
                     else:
                         label = cls.LABELS[0]
                     

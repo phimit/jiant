@@ -8,7 +8,7 @@
   "name": "disrpt21_gum",
   "kwargs": {
     "corpus":"eng.rst.gum",
-    "recurrent_layer": "lstm",
+    "recurrent_layer": "None",
     "rnn_config": {
         "hidden_size":100,
         "bidirectional":true,
