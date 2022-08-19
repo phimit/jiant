@@ -7,7 +7,7 @@ import jiant.utils.python.io as py_io
 import jiant.proj.main.components.task_sampler as jiant_task_sampler
 
 
-def write_val_results(val_results_dict, metrics_aggregator, output_dir, verbose=True):
+def write_val_results(val_results_dict, metrics_aggregator, output_dir, verbose=True,path="val_metrics.json"):
     full_results_to_write = {
         "aggregated": jiant_task_sampler.compute_aggregate_major_metrics_from_results_dict(
             metrics_aggregator=metrics_aggregator,
@@ -26,7 +26,7 @@ def write_val_results(val_results_dict, metrics_aggregator, output_dir, verbose=
     if verbose:
         print(metrics_str)
 
-    py_io.write_json(data=full_results_to_write, path=os.path.join(output_dir, "val_metrics.json"))
+    py_io.write_json(data=full_results_to_write, path=os.path.join(output_dir, path))
 
 
 def write_preds(eval_results_dict, path):
