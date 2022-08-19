@@ -194,6 +194,15 @@ def run_loop(args: RunConfiguration, checkpoint=None):
             test_results_dict = runner.run_test(
                 task_name_list=runner.jiant_task_container.task_run_config.test_task_list,
             )
+            # added to simplify test evaluation for now; ultimately should rely on test predictions directly 
+            # !! beware that it needs test labels !!
+            jiant_evaluate.write_val_results(
+                val_results_dict=test_results_dict,
+                metrics_aggregator=runner.jiant_task_container.metrics_aggregator,
+                output_dir=args.output_dir,
+                verbose=True,
+                path = "test_metrics.json"
+            )
             jiant_evaluate.write_preds(
                 eval_results_dict=test_results_dict,
                 path=os.path.join(args.output_dir, "test_preds.p"),
