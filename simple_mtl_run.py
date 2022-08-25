@@ -1,7 +1,8 @@
 # TODO
 #    x- simple -> normal run
 #    /- external config
-#    - argparse for all arguments
+#    /- argparse for all arguments
+#    - test/prediction mode
 
 import jiant.proj.main.tokenize_and_cache as tokenize_and_cache
 import jiant.proj.main.export_model as export_model
@@ -36,13 +37,13 @@ parser.add_argument("--epochs",default=1,type=float,help="nb of epochs for train
 parser.add_argument("--eval-every-step",default=100,type=int,help="")
 parser.add_argument("--no_improvements_for_n_evals",default=5,
                     help="early stopping after n evals w/o improvements; needs eval-every step to be set")
-parser.add_argument("--co2",default=False,type=bool,help="track co2 emissions (needs internet access)")
+parser.add_argument("--co2",action="store_true",default=False,help="track co2 emissions (needs internet access)")
 #example model names: "bert-base-multilingual-uncased", "roberta-base"
 
 args = parser.parse_args()
 EXP_DIR = args.exp_dir
 DATA_DIR = os.path.join(EXP_DIR,"tasks")
-TASK_NAME = args.tasks
+TASK_NAMES = args.tasks
 if args.model_path is None:
     HF_PRETRAINED_MODEL_NAME = args.model_name 
     MODEL_NAME = HF_PRETRAINED_MODEL_NAME
@@ -50,15 +51,16 @@ else:
     HF_PRETRAINED_MODEL_NAME = args.model_name
     MODEL_NAME = HF_PRETRAINED_MODEL_NAME.split("/")[-1]
 
-RUN_NAME = args.run_name if args.run_name is not None else f"run_{TASK_NAME}_{MODEL_NAME}"
+RUN_NAME = args.run_name if args.run_name is not None else f"run_{TASK_NAMES}_{MODEL_NAME}"
 
 CO2_tracking = args.co2
 
 if CO2_tracking: tracker = EmissionsTracker()
 
+task_list = TASK_NAMES.split()
 
 # testing the data reader
-for task_name in TASK_NAME.split():
+for task_name in task_list:
     tokenize_and_cache.main(tokenize_and_cache.RunConfiguration(
         task_config_path=os.path.join(DATA_DIR,f"configs/{task_name}_config.json"),
         hf_pretrained_model_name_or_path=HF_PRETRAINED_MODEL_NAME,
@@ -67,6 +69,7 @@ for task_name in TASK_NAME.split():
         smart_truncate = True,
     ))
 
+task_dev_caches = {task_name:caching.ChunkedFilesDataCache(f"./cache/{task_name}/val") for task_name in task_list}
 
 #chunk = caching.ChunkedFilesDataCache("./cache/disrpt21_gum/train").load_chunk(0)#[0]["data_row"]
 #for one in chunk[:3]:
@@ -88,8 +91,8 @@ if SIMPLE:
             hf_pretrained_model_name_or_path=HF_PRETRAINED_MODEL_NAME,
             #task_config_base_path=os.path.join(DATA_DIR,"/tasks/configs"),
             #tasks=TASK_NAME.split(),
-            train_task_name_list=TASK_NAME.split(),
-            val_task_name_list=TASK_NAME.split(),
+            train_task_name_list=TASK_NAMES.split(),
+            val_task_name_list=TASK_NAMES.split(),
             eval_every_steps=args.eval_every_step,
             train_batch_size=args.batch_size,
             num_train_epochs=30,
@@ -101,8 +104,8 @@ else:
     jiant_run_config = configurator.SimpleAPIMultiTaskConfigurator(
         task_config_base_path=os.path.join(DATA_DIR,f"configs/"),
         task_cache_base_path="./cache",
-        train_task_name_list=TASK_NAME.split(),
-        val_task_name_list=TASK_NAME.split(),
+        train_task_name_list=TASK_NAMES.split(),
+        val_task_name_list=TASK_NAMES.split(),
         train_batch_size=args.batch_size, # tony = 2!
         eval_batch_size=8,
         epochs=args.epochs,
@@ -135,10 +138,9 @@ else:
     # right now this only provably works for one task at a time
     # TODO: check pred file in multi-task exps
     infile = os.path.join("runs",RUN_NAME,"val_preds.p")
-    tasks = TASK_NAME.split()
-    for one_task in tasks:
+    for one_task in task_list:
         outfile = os.path.join("runs",RUN_NAME,one_task+"_dev.disrpt")
-        convert_prediction_to_disrpt(infile,one_task,outfile)
+        convert_prediction_to_disrpt(infile,one_task,outfile,task_dev_caches[one_task])
 
 
 if CO2_tracking: tracker.stop()

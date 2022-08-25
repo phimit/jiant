@@ -1,3 +1,10 @@
+# data cache and runs, and models
+cache/
+runs/
+exp/
+tmp/
+jiant/models/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
