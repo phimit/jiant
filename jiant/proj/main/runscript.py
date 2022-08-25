@@ -195,7 +195,8 @@ def run_loop(args: RunConfiguration, checkpoint=None):
                 task_name_list=runner.jiant_task_container.task_run_config.test_task_list,
             )
             # added to simplify test evaluation for now; ultimately should rely on test predictions directly 
-            # !! beware that it needs test labels !!
+            # !! beware that it needs test labels !! 
+            # does not work right now cos metrics not computed -> check runner_run_test + component/evaluate
             jiant_evaluate.write_val_results(
                 val_results_dict=test_results_dict,
                 metrics_aggregator=runner.jiant_task_container.metrics_aggregator,

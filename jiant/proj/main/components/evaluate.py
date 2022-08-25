@@ -35,5 +35,6 @@ def write_preds(eval_results_dict, path):
         preds_dict[task_name] = {
             "preds": task_results_dict["preds"],
             "guids": task_results_dict["accumulator"].get_guids(),
+            "meta" : task_results_dict["accumulator"].get_meta_information()
         }
     torch.save(preds_dict, path)

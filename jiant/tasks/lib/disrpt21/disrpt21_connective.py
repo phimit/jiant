@@ -1,8 +1,8 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from dataclasses import dataclass
-from typing import List, Union
+from dataclasses import dataclass, field
+from typing import List, Union, Dict, Any
 import sys
 
 from jiant.tasks.core import (
@@ -33,6 +33,7 @@ class Example(BaseExample):
     guid: str
     tokens: List[str]
     label_list: List[str]
+    meta: List[str] = field(default_factory=list)
 
     def tokenize(self, tokenizer):
         all_tokenized_tokens = []
@@ -54,6 +55,7 @@ class Example(BaseExample):
             tokens=all_tokenized_tokens,
             labels=labels,
             label_mask=label_mask,
+            meta = self.meta
         )
 
 
@@ -63,6 +65,7 @@ class TokenizedExample(BaseTokenizedExample):
     tokens: List
     labels: List[Union[int, None]]
     label_mask: List[int]
+    meta: List[str] = field(default_factory=list)
 
     def featurize(self, tokenizer, feat_spec):
         unpadded_inputs = construct_single_input_tokens_and_segment_ids(
@@ -113,6 +116,7 @@ class TokenizedExample(BaseTokenizedExample):
             label_ids=np.array(padded_labels),
             label_mask=np.array(padded_label_mask),
             tokens=unpadded_inputs.unpadded_tokens,
+            meta = self.meta,
         )
 
 
@@ -125,6 +129,7 @@ class DataRow(BaseDataRow):
     label_ids: np.ndarray
     label_mask: np.ndarray
     tokens: list
+    meta: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -159,6 +164,7 @@ class DisrptConnTask(Task):
         "lstm": nn.LSTM,
         "gru": nn.GRU,
     }   
+    META_DOC = {"newdoc id":0,"sent_id":1,"text":2}
 
     # PM TODO: 
     # - we reproduce panx subtask system here by giving a corpus name 
@@ -224,12 +230,16 @@ class DisrptConnTask(Task):
         curr_token_list, curr_label_list = [], []
         data_lines = read_file_lines(data_path, "r", encoding="utf-8")
         examples = []
+        meta = ["","",""]
         idx = 0
         for data_line in data_lines:
             data_line = data_line.strip()
             if data_line:
                 if data_line.startswith("#"):
-                    pass
+                    info, value = data_line[1:].strip().split("=",1)
+                    info = info.strip()
+                    if info in cls.META_DOC:
+                        meta[cls.META_DOC[info]] = value.strip()
                 else:
                     _, token, *useless, labels = data_line.split("\t")
                     label_set = set(labels.split("|"))
@@ -250,12 +260,14 @@ class DisrptConnTask(Task):
                         guid="%s-%s" % (set_type, idx),
                         tokens=curr_token_list,
                         label_list=curr_label_list,
+                        meta=meta
                     )
                 )
                 idx += 1
                 curr_token_list, curr_label_list = [], []
+                meta = ["","",""]
         if curr_token_list:
             examples.append(
-                Example(guid="%s-%s" % (idx, idx), tokens=curr_token_list, label_list=curr_label_list)
+                Example(guid="%s-%s" % (idx, idx), tokens=curr_token_list, label_list=curr_label_list,meta=meta)
             )
         return examples

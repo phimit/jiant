@@ -11,12 +11,12 @@ import jiant.proj.simple.runscript as simple_run
 import jiant.shared.caching as caching
 import jiant.utils.python.io as py_io
 import jiant.utils.display as display
+from decode_preds import convert_prediction_to_disrpt
 #from datasets import load_dataset_builder
 import os
 import argparse
 from codecarbon import EmissionsTracker
 
-tracker = EmissionsTracker()
 
 EXP_DIR = "/home/muller/Devel/jiant/exp"
 DATA_DIR = os.path.join(EXP_DIR,"tasks")
@@ -34,7 +34,9 @@ parser.add_argument("--exp-dir",default=EXP_DIR,help="directory where to find da
 parser.add_argument("--batch-size",default=64,type=int,help="")
 parser.add_argument("--epochs",default=1,type=float,help="nb of epochs for training")
 parser.add_argument("--eval-every-step",default=100,type=int,help="")
-
+parser.add_argument("--no_improvements_for_n_evals",default=5,
+                    help="early stopping after n evals w/o improvements; needs eval-every step to be set")
+parser.add_argument("--co2",default=False,type=bool,help="track co2 emissions (needs internet access)")
 #example model names: "bert-base-multilingual-uncased", "roberta-base"
 
 args = parser.parse_args()
@@ -50,6 +52,10 @@ else:
 
 RUN_NAME = args.run_name if args.run_name is not None else f"run_{TASK_NAME}_{MODEL_NAME}"
 
+CO2_tracking = args.co2
+
+if CO2_tracking: tracker = EmissionsTracker()
+
 
 # testing the data reader
 for task_name in TASK_NAME.split():
@@ -58,6 +64,7 @@ for task_name in TASK_NAME.split():
         hf_pretrained_model_name_or_path=HF_PRETRAINED_MODEL_NAME,
         output_dir=f"./cache/{task_name}",
         phases=["train", "val"],
+        smart_truncate = True,
     ))
 
 
@@ -70,7 +77,9 @@ for task_name in TASK_NAME.split():
 
 
 SIMPLE = False
-tracker.start()
+
+
+if CO2_tracking: tracker.start()
 if SIMPLE: 
     args = simple_run.RunConfiguration(
             run_name=RUN_NAME,
@@ -107,12 +116,13 @@ else:
 
     run_args = main_runscript.RunConfiguration(
         jiant_task_container_config_path=os.path.join(EXP_DIR,"run_configs/jiant_run_config.json"),
-        output_dir="./runs/run1",
+        output_dir=os.path.join("runs",RUN_NAME),
         hf_pretrained_model_name_or_path=HF_PRETRAINED_MODEL_NAME,
         model_path=os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"model/model.p"),
         model_config_path=os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"/config.json"),
         learning_rate=1e-5, # tony = 1e-3
         eval_every_steps=args.eval_every_step,
+        no_improvements_for_n_evals=args.no_improvements_for_n_evals,
         write_val_preds=True,
         do_train=True,
         do_val=True,
@@ -121,4 +131,14 @@ else:
 
     main_runscript.run_loop(run_args)
 
-tracker.stop()
+    # predictions are stored only as torch tensors, this puts them in disrpt format
+    # right now this only provably works for one task at a time
+    # TODO: check pred file in multi-task exps
+    infile = os.path.join("runs",RUN_NAME,"val_preds.p")
+    tasks = TASK_NAME.split()
+    for one_task in tasks:
+        outfile = os.path.join("runs",RUN_NAME,one_task+"_dev.disrpt")
+        convert_prediction_to_disrpt(infile,one_task,outfile)
+
+
+if CO2_tracking: tracker.stop()

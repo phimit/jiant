@@ -170,7 +170,7 @@ class TokenClassificationHead(BaseHead):
         if self.classif_type =="simple":
             unpooled = self.dropout(unpooled)
             logits = self.classifier(unpooled)
-        else:# rnn
+        else:# rnn, dropout is the responsibilit of the task lstm config in that case
             outputs, hn_cn = self.rnn(unpooled)
             logits = self.projection(outputs)
         return logits
