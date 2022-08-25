@@ -1,31 +1,39 @@
+from logging import raiseExceptions
 import torch
-import sys
+import sys, os.path
 import argparse
 
-"""reads prediction tensor saved by jian
+"""reads tagging prediction tensor saved by jiant
 might be easier to dump then at evaluation time but not general enough for inference
 
-   - todo ? more general : extract labels from task class
-   - todo check that the written predictions are indeed for each token, and not subtokens
-   
+   x- todo ? more general : extract labels from task class
+   x- todo check that the written predictions are indeed for each token, and not subtokens
+    - manage cached dataset to recover label_mask from tokenization
+    - generalise to train/val/test preds (just dev/validation for now)
 
 """
+from jiant.tasks.evaluate.core import F1TaggingEvaluationScheme
+from jiant.tasks.lib.disrpt21.disrpt21 import DisrptTask
+from jiant.tasks.lib.disrpt21.disrpt21_connective import DisrptConnTask
+import jiant.shared.caching as caching
 
-def convert_prediction_to_disrpt(infile,task,outfile,encoding="utf8"):
+
+
+def convert_prediction_to_disrpt(infile,task,outfile,cache,encoding="utf8"):
     """ infile: is the torch-saved tensor of predictions
-        task: name of task
+        task: name of tasktask
         outfile: filename where to save predictions or "stdout"
     """
     if "pdtb" in task: 
-        task_type = "connective"
+        task_type = DisrptConnTask
     else: 
-        task_type = "segment"
+        task_type = DisrptTask
 
-    if task_type == "segment":
-        labels = ["_","BeginSeg=Yes"]
-    else:
-        labels = ["_","Seg=B-Conn","Seg=I-Conn"]
+    orig_labels = task_type.ORIG_LABELS #for disrpt : ["_","BeginSeg=Yes"] ou ["_","Seg=B-Conn","Seg=I-Conn"]
+
+    info_labels = F1TaggingEvaluationScheme.get_labels_from_cache_and_examples(task_type, cache,[])
     
+
     data = torch.load(infile)[task]
 
     meta = data["meta"]
@@ -43,7 +51,16 @@ def convert_prediction_to_disrpt(infile,task,outfile,encoding="utf8"):
         print(f"# sentence_id: {sentence_id}",file=outfile)
         print(f"# text = {sent_string}",file=outfile)
         tokens = sent_string.split()
-        outlabels = [labels[j] for j in preds[i]][:len(tokens)]
+        # this is were the label_mask should be used
+        label_mask = info_labels[i]["label_mask"]
+        relevant_preds = preds[i][label_mask]
+        outlabels = [orig_labels[j] for j in relevant_preds]
+        try: 
+            assert len(outlabels)==len(tokens)
+        except AssertionError:
+            print(len(outlabels),len(tokens))
+            print(doc_id,sentence_id,sent_string)
+            raise AssertionError
         for n,tok in enumerate(tokens):
             # disrpt format (no feature)
             # token_id token _ _ _ _ _ _ _ label
@@ -59,7 +76,10 @@ if __name__=="__main__":
     #parser.add_argument("--task-type",default="segment",help="task type segment or connective; connective automatically detected")
     parser.add_argument("--outfile",default="stdout",help="file to save results in, defaults to stdout")
     parser.add_argument("--encoding",default="utf8",help="output encoding")
+    parser.add_argument("--cache-path",default="./cache",
+                                    help="path to the general instances cache directory, defaults to ./cache")
 
     args = parser.parse_args()
     
-    convert_prediction_to_disrpt(args.infile,args.task,args.outfile,encoding=args.encoding)
+    cache = caching.ChunkedFilesDataCache(os.path.join(args.cache_path,f"{args.task}/val"))
+    convert_prediction_to_disrpt(args.infile,args.task,args.outfile,cache,encoding=args.encoding)
