@@ -48,6 +48,9 @@ class BaseAccumulator:
 
     def get_guids(self):
         return None
+    
+    def get_meta_information(self):
+        return None
 
     def get_accumulated(self):
         raise NotImplementedError()
@@ -77,16 +80,26 @@ class ConcatenateLogitsAccumulator(BaseAccumulator):
     def __init__(self):
         self.logits_list = []
         self.guid_list = []
+        self.meta_list = []
 
     def update(self, batch_logits, batch_loss, batch, batch_metadata):
         self.logits_list.append(batch_logits)
         batch_guid = batch_metadata.get("guid")
+        batch_meta = batch_metadata.get("meta")
+
         if batch_guid is not None:
             self.guid_list.append(batch_guid)
+        if batch_meta is not None:
+            self.meta_list.append(batch_meta)
 
     def get_guids(self):
         if self.guid_list:
             return np.concatenate(self.guid_list)
+        else:
+            return None
+    def get_meta_information(self):
+        if self.meta_list:
+            return np.concatenate(self.meta_list)
         else:
             return None
 
