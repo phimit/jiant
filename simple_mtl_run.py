@@ -11,6 +11,7 @@ import jiant.proj.simple.runscript as simple_run
 import jiant.shared.caching as caching
 import jiant.utils.python.io as py_io
 import jiant.utils.display as display
+from decode_preds import convert_prediction_to_disrpt
 #from datasets import load_dataset_builder
 import os
 import argparse
@@ -131,7 +132,13 @@ else:
     main_runscript.run_loop(run_args)
 
     # predictions are stored only as torch tensors, this puts them in disrpt format
-    
+    # right now this only provably works for one task at a time
+    # TODO: check pred file in multi-task exps
+    infile = os.path.join("runs",RUN_NAME,"val_preds.p")
+    tasks = TASK_NAME.split()
+    for one_task in tasks:
+        outfile = os.path.join("runs",RUN_NAME,one_task+"_dev.disrpt")
+        convert_prediction_to_disrpt(infile,one_task,outfile)
 
 
 if CO2_tracking: tracker.stop()
