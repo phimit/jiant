@@ -2,8 +2,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 from dataclasses import dataclass, field
-from typing import List, Dict, Union, Any
+from typing import List, Dict, Union, Any, NamedTuple
 import sys
+
+# TODO: make meta information a namedtuple
 
 from jiant.tasks.core import (
     BaseExample,
@@ -250,8 +252,8 @@ class DisrptTask(Task):
                     curr_token_list.append(token)
                     curr_label_list.append(label)
             else:
-                if meta["text"]=="":# some corpora dont put the list of tokens in commentary
-                        meta["text"] = " ".join(curr_token_list)
+                if meta[2]=="":# some corpora dont put the list of tokens in commentary
+                        meta[2] = " ".join(curr_token_list)
                 examples.append(
                     Example(
                         guid="%s-%s" % (set_type, idx),
@@ -264,8 +266,8 @@ class DisrptTask(Task):
                 curr_token_list, curr_label_list = [], []
                 meta = ["","",""]
         if curr_token_list:
-            if meta["text"]=="":# some corpora dont put the list of tokens in commentary
-                        meta["text"] = " ".join(curr_token_list)
+            if meta[2]=="":# some corpora dont put the list of tokens in commentary
+                        meta[2] = " ".join(curr_token_list)
             examples.append(
                 Example(guid="%s-%s" % (idx, idx), tokens=curr_token_list, label_list=curr_label_list,meta=meta)
             )
