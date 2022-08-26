@@ -238,7 +238,9 @@ class DisrptConnTask(Task):
                 if data_line.startswith("#"):
                     info, value = data_line[1:].strip().split("=",1)
                     info = info.strip()
-                    if info in cls.META_DOC:
+                    # do not use the text meta data as it is often not properly tokenized
+                    # for pdtb corpora
+                    if info in cls.META_DOC and not(info=="text"):
                         meta[cls.META_DOC[info]] = value.strip()
                 else:
                     _, token, *useless, labels = data_line.split("\t")
