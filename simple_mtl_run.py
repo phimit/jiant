@@ -65,6 +65,7 @@ for task_name in task_list:
         task_config_path=os.path.join(DATA_DIR,f"configs/{task_name}_config.json"),
         hf_pretrained_model_name_or_path=HF_PRETRAINED_MODEL_NAME,
         output_dir=f"./cache/{task_name}",
+        max_seq_length=200,
         phases=["train", "val"],
         smart_truncate = True,
     ))

@@ -264,7 +264,7 @@ class DisrptTask(Task):
                 )
                 idx += 1
                 curr_token_list, curr_label_list = [], []
-                meta = ["","",""]
+                meta = [meta[0],"",""]
         if curr_token_list:
             if meta[2]=="":# some corpora dont put the list of tokens in commentary
                         meta[2] = " ".join(curr_token_list)
