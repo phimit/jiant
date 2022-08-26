@@ -25,7 +25,7 @@ def convert_prediction_to_disrpt(infile,task,outfile,cache,encoding="utf8"):
         outfile: filename where to save predictions or "stdout"
     """
     corpus_name = task.split("_")[1]
-    if corpus_name in ("pdtb","tdb","cdtb"): 
+    if corpus_name in ("pdtb","tdb","cdtb") : 
         task_type = DisrptConnTask
     else: 
         task_type = DisrptTask
