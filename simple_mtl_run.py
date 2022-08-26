@@ -35,7 +35,7 @@ parser.add_argument("--exp-dir",default=EXP_DIR,help="directory where to find da
 parser.add_argument("--batch-size",default=64,type=int,help="")
 parser.add_argument("--epochs",default=1,type=float,help="nb of epochs for training")
 parser.add_argument("--eval-every-step",default=100,type=int,help="")
-parser.add_argument("--no_improvements_for_n_evals",default=5,
+parser.add_argument("--no_improvements_for_n_evals",default=5,type=int,
                     help="early stopping after n evals w/o improvements; needs eval-every step to be set")
 parser.add_argument("--co2",action="store_true",default=False,help="track co2 emissions (needs internet access)")
 #example model names: "bert-base-multilingual-uncased", "roberta-base"
@@ -129,6 +129,7 @@ else:
         write_val_preds=True,
         do_train=True,
         do_val=True,
+        do_save=True,
         force_overwrite=True,
     )
 
