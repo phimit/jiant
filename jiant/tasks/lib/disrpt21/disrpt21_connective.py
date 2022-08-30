@@ -232,6 +232,7 @@ class DisrptConnTask(Task):
         examples = []
         meta = ["","",""]
         idx = 0
+        sent_nb = 1
         for data_line in data_lines:
             data_line = data_line.strip()
             if data_line:
@@ -242,6 +243,8 @@ class DisrptConnTask(Task):
                     # for pdtb corpora
                     if info in cls.META_DOC and not(info=="text"):
                         meta[cls.META_DOC[info]] = value.strip()
+                    if info=="newdoc id":
+                        s = 1
                 else:
                     _, token, *useless, labels = data_line.split("\t")
                     label_set = set(labels.split("|"))
@@ -256,9 +259,12 @@ class DisrptConnTask(Task):
                     
                     curr_token_list.append(token)
                     curr_label_list.append(label)
-            else:
+            else:# end of sentence
                 if meta[2]=="":# some corpora dont put the list of tokens in commentary
                         meta[2] = " ".join(curr_token_list)
+                if meta[1]=="":# some corpora dont number sentences, which is harder to debug
+                    meta[1]=f"sent id: {meta[0]}-{sent_nb}"
+                sent_nb = sent_nb + 1
                 examples.append(
                     Example(
                         guid="%s-%s" % (set_type, idx),
@@ -269,10 +275,13 @@ class DisrptConnTask(Task):
                 )
                 idx += 1
                 curr_token_list, curr_label_list = [], []
-                meta = ["","",""]
+                # keep the doc id for the next sentence; will be replaced by a new doc anyway
+                meta = [meta[0],"",""]
         if curr_token_list:
             if meta[2]=="":# some corpora dont put the list of tokens in commentary
                         meta[2] = " ".join(curr_token_list)
+            if meta[1]=="":# some corpora dont number sentences, which is harder to debug
+                    meta[1]=f"sent id: {meta[0]}-{sent_nb}"
             examples.append(
                 Example(guid="%s-%s" % (idx, idx), tokens=curr_token_list, label_list=curr_label_list,meta=meta)
             )

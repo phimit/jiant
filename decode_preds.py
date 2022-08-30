@@ -59,8 +59,8 @@ def convert_prediction_to_disrpt(infile,task,outfile,cache,encoding="utf8"):
         try: 
             assert len(outlabels)==len(tokens)
         except AssertionError:
-            print(len(outlabels),len(tokens))
-            print(doc_id,sentence_id,sent_string)
+            print(f"docid={doc_id},sentence_id={sentence_id},sent={sent_string}")
+            print(f"out={len(outlabels)},tokens={len(tokens)}")
             raise AssertionError
         for n,tok in enumerate(tokens):
             # disrpt format (no feature)
