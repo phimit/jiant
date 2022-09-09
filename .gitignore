@@ -1,7 +1,7 @@
 # data cache and runs, and models
 cache/
 runs/
-exp/
+#exp/
 tmp/
 jiant/models/
 
