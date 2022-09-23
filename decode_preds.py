@@ -33,7 +33,8 @@ def convert_prediction_to_disrpt(infile,task,outfile,cache,encoding="utf8"):
     orig_labels = task_type.ORIG_LABELS #for disrpt : ["_","BeginSeg=Yes"] ou ["_","Seg=B-Conn","Seg=I-Conn"]
 
     info_labels = F1TaggingEvaluationScheme.get_labels_from_cache_and_examples(task_type, cache,[])
-    
+
+    default_label_idx = 0
 
     data = torch.load(infile)[task]
 
@@ -59,9 +60,12 @@ def convert_prediction_to_disrpt(infile,task,outfile,cache,encoding="utf8"):
         try: 
             assert len(outlabels)==len(tokens)
         except AssertionError:
+            print(f"preds/tokens have different numbers, missing prediction set to default class")
             print(f"docid={doc_id},sentence_id={sentence_id},sent={sent_string}")
             print(f"out={len(outlabels)},tokens={len(tokens)}")
-            raise AssertionError
+            #raise AssertionError
+            missing_preds = [orig_labels[default_label_idx]]*(len(tokens)-len(outlabels))
+            outlabels.extend(missing_preds)
         for n,tok in enumerate(tokens):
             # disrpt format (no feature)
             # token_id token _ _ _ _ _ _ _ label

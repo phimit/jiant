@@ -30,14 +30,19 @@ parser.add_argument("--model-name",default="bert-base-multilingual-uncased",help
 parser.add_argument("--model-path",default=None,help="path to the model; if model-name is on hugging face, this does not need to be set")
 parser.add_argument("--exp-dir",default=EXP_DIR,help="directory where to find data and configs")
 
-# todo: add batch size, epochs, eval_every_step, sth to set early stopping too
-#       and an option for val/testing -> for test, needs to hack the task_config_path cos of error in metrics for test set
-parser.add_argument("--batch-size",default=64,type=int,help="")
+# todo: 
+#       an option for val/testing -> for test, needs to hack the task_config_path cos of error in metrics for test set
+parser.add_argument("--batch-size",default=16,type=int,help="")
+parser.add_argument("--gradient-accumulation-steps",default=4,help="delaying gradient update to allow for larger effective batches")
 parser.add_argument("--epochs",default=1,type=float,help="nb of epochs for training")
 parser.add_argument("--eval-every-step",default=100,type=int,help="")
 parser.add_argument("--no_improvements_for_n_evals",default=5,type=int,
                     help="early stopping after n evals w/o improvements; needs eval-every step to be set")
+parser.add_argument("--max-seq-length",default=128,type=int,help="max nb of subtokens before truncation of inputs")
 parser.add_argument("--co2",action="store_true",default=False,help="track co2 emissions (needs internet access)")
+parser.add_argument("--fp16",action="store_true",default=False,help="activate mixed precision 16/32bit; needs apex installed")
+
+
 #example model names: "bert-base-multilingual-uncased", "roberta-base"
 
 args = parser.parse_args()
@@ -65,7 +70,7 @@ for task_name in task_list:
         task_config_path=os.path.join(DATA_DIR,f"configs/{task_name}_config.json"),
         hf_pretrained_model_name_or_path=HF_PRETRAINED_MODEL_NAME,
         output_dir=f"./cache/{task_name}",
-        max_seq_length=200,
+        max_seq_length=args.max_seq_length,
         phases=["train", "val"],
         smart_truncate = True,
     ))
@@ -81,6 +86,9 @@ task_dev_caches = {task_name:caching.ChunkedFilesDataCache(f"./cache/{task_name}
 
 
 SIMPLE = False
+
+import torch
+torch.cuda.empty_cache()
 
 
 if CO2_tracking: tracker.start()
@@ -102,13 +110,18 @@ if SIMPLE:
         )
     simple_run.run_simple(args)
 else:
+    # should play with HF trainer, which accepts options like
+    # per_device_train_batch_size = 8,
+    # gradient_accumulation_steps = 8 ~= batch 64 with less memory   
+
     jiant_run_config = configurator.SimpleAPIMultiTaskConfigurator(
         task_config_base_path=os.path.join(DATA_DIR,f"configs/"),
         task_cache_base_path="./cache",
         train_task_name_list=TASK_NAMES.split(),
         val_task_name_list=TASK_NAMES.split(),
         train_batch_size=args.batch_size, # tony = 2!
-        eval_batch_size=8,
+        gradient_accumulation_steps =args.gradient_accumulation_steps, # à tester; équivalent à multiplier batch_size mais avec mémoire moindre
+        eval_batch_size=1,
         epochs=args.epochs,
         num_gpus=1,
     ).create_config()
@@ -128,6 +141,7 @@ else:
         eval_every_steps=args.eval_every_step,
         no_improvements_for_n_evals=args.no_improvements_for_n_evals,
         write_val_preds=True,
+        fp16=args.fp16,
         do_train=True,
         do_val=True,
         do_save=True,
@@ -139,10 +153,13 @@ else:
     # predictions are stored only as torch tensors, this puts them in disrpt format
     # right now this only provably works for one task at a time
     # TODO: check pred file in multi-task exps
+    # TODO: relax assertion that nb predictions = nb of tokens (when truncated sequence because too long for transformer)
     infile = os.path.join("runs",RUN_NAME,"val_preds.p")
     for one_task in task_list:
-        outfile = os.path.join("runs",RUN_NAME,one_task+"_dev.disrpt")
-        convert_prediction_to_disrpt(infile,one_task,outfile,task_dev_caches[one_task])
-
+        try: 
+            outfile = os.path.join("runs",RUN_NAME,one_task+"_dev.disrpt")
+            convert_prediction_to_disrpt(infile,one_task,outfile,task_dev_caches[one_task])
+        except:
+            print("saved prediction not working with task:",one_task)
 
 if CO2_tracking: tracker.stop()
