@@ -149,8 +149,8 @@ class TokenClassificationHead(BaseHead):
         super().__init__()
         self.num_labels = len(task.LABELS)
         self.dropout = nn.Dropout(hidden_dropout_prob)
-        self.classif_type = task.classif_type
-        if task.classif_type=="simple":
+        self.classif_type = getattr(task,"classif_type","simple")
+        if self.classif_type=="simple":
             self.classifier = nn.Linear(hidden_size, self.num_labels)
         else:# recurrent_layer
             cfg = task.rnn_cfg
