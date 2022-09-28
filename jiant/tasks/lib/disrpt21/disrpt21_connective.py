@@ -260,8 +260,8 @@ class DisrptConnTask(Task):
                     curr_token_list.append(token)
                     curr_label_list.append(label)
             else:# end of sentence
-                if meta[2]=="":# some corpora dont put the list of tokens in commentary
-                        meta[2] = " ".join(curr_token_list)
+                #if meta[2]=="":# some corpora dont put the list of tokens in commentary
+                meta[2] = " ".join(curr_token_list)
                 if meta[1]=="":# some corpora dont number sentences, which is harder to debug
                     meta[1]=f"sent id: {meta[0]}-{sent_nb}"
                 sent_nb = sent_nb + 1
@@ -278,11 +278,62 @@ class DisrptConnTask(Task):
                 # keep the doc id for the next sentence; will be replaced by a new doc anyway
                 meta = [meta[0],"",""]
         if curr_token_list:
-            if meta[2]=="":# some corpora dont put the list of tokens in commentary
-                        meta[2] = " ".join(curr_token_list)
+            #if meta[2]=="":# some corpora dont put the list of tokens in commentary
+            meta[2] = " ".join(curr_token_list)
             if meta[1]=="":# some corpora dont number sentences, which is harder to debug
                     meta[1]=f"sent id: {meta[0]}-{sent_nb}"
             examples.append(
                 Example(guid="%s-%s" % (idx, idx), tokens=curr_token_list, label_list=curr_label_list,meta=meta)
             )
         return examples
+
+    @classmethod
+    def format_predictions(cls, info_labels, data):
+        """
+        output predictions as saved in eg val_preds.p in the original disrpt format
+
+        info_labels: contains reference label mask corresponding to sub-tokenized input, saved in the cache
+        necessary because the saved prediction tensor does not store explicitely the subtokenization 
+
+
+        data is the content of the torch-saved predictions.
+        it contains the keys: 
+           "meta": is the list of instance meta information, here it should be a tuple as defined above: 
+            (doc_id,sentence_id,sentence string)
+            sentence string should be "tokenized": splitting on spaces will yield the list of tokens
+           "preds": the vector of predictions on subtokens
+        """
+        default_label_idx = 0
+        orig_labels = cls.ORIG_LABELS
+        meta = data["meta"]
+        preds = data["preds"]
+
+        output = []
+
+        for i,instance in enumerate(meta):
+            doc_id, sentence_id, sent_string = instance
+            if doc_id!="": 
+                output.append(f"# doc_id: {doc_id}")
+            output.append(f"# sentence_id: {sentence_id}")
+            output.append(f"# text = {sent_string}")
+            tokens = sent_string.split()
+            # this is were the label_mask should be used
+            label_mask = info_labels[i]["label_mask"]
+            relevant_preds = preds[i][label_mask]
+            outlabels = [orig_labels[j] for j in relevant_preds]
+            try: # nb of predictions does not always match number of tokens if some instance is longer than max_seq_length
+                # can be also an error reading metadata 
+                assert len(outlabels)==len(tokens)
+            except AssertionError:
+                print(f"preds/tokens have different numbers, missing prediction set to default class",file=sys.stderr)
+                print(f"docid={doc_id},sentence_id={sentence_id},sent={sent_string}",file=sys.stderr)
+                print(f"out={len(outlabels)},tokens={len(tokens)}",file=sys.stderr)
+                #raise AssertionError
+                missing_preds = [orig_labels[default_label_idx]]*(len(tokens)-len(outlabels))
+                outlabels.extend(missing_preds)
+            for n,tok in enumerate(tokens):
+                # disrpt format (no feature)
+                # token_id token _ _ _ _ _ _ _ label
+                output.append(f"{n+1}\t{tok}\t"+"\t".join(["_"]*7)+f"\t{outlabels[n]}")
+            output.append("")
+        return output

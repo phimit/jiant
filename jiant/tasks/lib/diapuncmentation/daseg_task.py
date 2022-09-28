@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import sys
 from dataclasses import dataclass, field
 from typing import List, Union, Dict
 
@@ -27,7 +28,7 @@ class Example(BaseExample):
     guid: str
     tokens: List[str]
     label_list: List[str]
-    meta: Dict = field(default_factory=dict)
+    meta: List[str] = field(default_factory=list)
 
     def tokenize(self, tokenizer):
         all_tokenized_tokens = []
@@ -44,8 +45,8 @@ class Example(BaseExample):
             labels += [DaSegTask.LABEL_TO_ID.get(label, None)] + [None] * padding_length
             label_mask += [1] + [0] * padding_length
 
-        self.meta["tokenized"] = all_tokenized_tokens
-        self.meta["labels"] = labels
+        #self.meta["tokenized"] = all_tokenized_tokens
+        #self.meta["labels"] = labels
         
         return TokenizedExample(
             guid=self.guid,
@@ -61,7 +62,7 @@ class TokenizedExample(BaseTokenizedExample):
     tokens: List
     labels: List[Union[int, None]]
     label_mask: List[int]
-    meta: Dict = field(default_factory=dict)
+    meta: List[str] = field(default_factory=list)
 
     def featurize(self, tokenizer, feat_spec):
         unpadded_inputs = construct_single_input_tokens_and_segment_ids(
@@ -103,11 +104,11 @@ class TokenizedExample(BaseTokenizedExample):
             feat_spec=feat_spec,
             pad_idx=0,
         )
-
-        self.meta["input_ids"] = input_set.input_ids
+        # already stored / we dont need them in meta
+        """ self.meta["input_ids"] = input_set.input_ids
         self.meta["input_mask"] = input_set.input_mask
         self.meta["label_ids"] = padded_labels
-        self.meta["label_mask"] = padded_label_mask
+        self.meta["label_mask"] = padded_label_mask """
 
         return DataRow(
             guid=self.guid,
@@ -129,7 +130,7 @@ class DataRow(BaseDataRow):
     label_ids: np.ndarray
     label_mask: np.ndarray
     tokens: list
-    meta: Dict = field(default_factory=dict)
+    meta: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -150,7 +151,7 @@ class DaSegTask(Task):
 
     TASK_TYPE = TaskTypes.TAGGING
     LABELS = ["O", "BeginSeg=Yes"]
-    ORIG_LABELS = ["_", "BegSeg"]
+    ORIG_LABELS = ["", "|"]
     LABEL_TO_ID, ID_TO_LABEL = labels_to_bimap(LABELS)
 
     @property
@@ -180,8 +181,11 @@ class DaSegTask(Task):
         """
         examples = []
         curr_token_list, curr_label_list = [], []
+        # 3 places to match disrpt (doc_id,sentence_id, tokens) but for now we only have tokens (might change if corpus format changes)
+        #meta = ["","",""]
         # Read
         for idx, line in enumerate(read_file_lines(path, "r", encoding="utf-8")):
+            meta = ["","",""]
             line = line.strip()
             line_items = line.split("|")
 
@@ -189,13 +193,60 @@ class DaSegTask(Task):
                 tokens = [tok for tok in item.split(" ") if len(tok) and tok not in [".", ",", "?"]]
                 curr_token_list.extend(tokens)
                 curr_label_list.extend([cls.LABELS[1]] + [cls.LABELS[0]] * (len(tokens) - 1))
+            meta[2] = " ".join(curr_token_list)
             examples.append(
                 Example(
                     guid=f"{set_type}-{idx}",
                     tokens=curr_token_list,
-                    label_list= curr_label_list
+                    label_list= curr_label_list,
+                    meta = meta
                 )
             )
             curr_token_list, curr_label_list = [], []
         return examples
 
+    @classmethod
+    def format_predictions(cls, info_labels, data):
+        """
+        output predictions as saved in eg val_preds.p in a readable format
+
+        info_labels: contains reference label mask corresponding to sub-tokenized input, saved in the cache
+        necessary because the saved prediction tensor does not store explicitely the subtokenization 
+
+
+        data is the content of the torch-saved predictions.
+        it contains the keys: 
+           "meta": is the list of instance meta information, here it should be a tuple as defined above: 
+            (doc_id,sentence_id,sentence string)
+            sentence string should be "tokenized": splitting on spaces will yield the list of tokens
+           "preds": the vector of predictions on subtokens
+        """
+        default_label_idx = 0
+        orig_labels = cls.ORIG_LABELS
+        meta = data["meta"]
+        preds = data["preds"]
+
+        output = []
+
+        for i,instance in enumerate(meta):
+            doc_id, sentence_id, sent_string = instance
+            tokens = sent_string.split()
+            # this is were the label_mask should be used
+            label_mask = info_labels[i]["label_mask"]
+            relevant_preds = preds[i][label_mask]
+            outlabels = [orig_labels[j] for j in relevant_preds]
+            try: # nb of predictions does not always match number of tokens if some instance is longer than max_seq_length
+                # can be also an error reading metadata 
+                assert len(outlabels)==len(tokens)
+            except AssertionError:
+                print(f"preds/tokens have different numbers, missing prediction set to default class",file=sys.stderr)
+                print(f"docid={doc_id},sentence_id={sentence_id},sent={sent_string}",file=sys.stderr)
+                print(f"out={len(outlabels)},tokens={len(tokens)}",file=sys.stderr)
+                #raise AssertionError
+                missing_preds = [orig_labels[default_label_idx]]*(len(tokens)-len(outlabels))
+                outlabels.extend(missing_preds)
+
+            output.append(" ".join(["".join((outlabels[n],tok)) for (n,tok) in enumerate(tokens)]))
+
+            output.append("")
+        return output
