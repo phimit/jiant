@@ -157,6 +157,7 @@ else:
     infile = os.path.join("runs",RUN_NAME,"val_preds.p")
     for one_task in task_list:
         try: 
+            outfile = os.path.join("runs",RUN_NAME,one_task+"_dev.txt")
             convert_prediction_to_disrpt(infile,one_task,outfile,task_dev_caches[one_task])
         except:
             print("saved prediction not working with task:",one_task)

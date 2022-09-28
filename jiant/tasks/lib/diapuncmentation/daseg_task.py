@@ -186,7 +186,7 @@ class DaSegTask(Task):
         # Read
         for idx, line in enumerate(read_file_lines(path, "r", encoding="utf-8")):
             meta = ["","",""]
-            line = line.strip()
+            line = line.strip().lower()
             line_items = line.split("|")
 
             for i, item in enumerate(line_items):
@@ -248,5 +248,4 @@ class DaSegTask(Task):
 
             output.append(" ".join(["".join((outlabels[n],tok)) for (n,tok) in enumerate(tokens)]))
 
-            output.append("")
         return output
