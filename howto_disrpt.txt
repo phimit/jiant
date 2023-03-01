@@ -1,0 +1,58 @@
+Following the guide for addind a new task, experimenting with adding disrt21/gum dataset
+
+1. A (new) task file: jiant/tasks/lib/disprt21/disrpt21-gum.py
+   task class will be DisrptGum
+2. The task retrieval library: jiant/tasks/retrieval.py
+   adding DisrptGum to TASK_DICT
+
+   instruction forgot to indicate that the task must be imported too:
+   from jiant.tasks.lib.disrpt21 import MutualPlusTask
+3. The evaluation library: jiant/tasks/evaluate/core.py
+   addidng DisrptGum to the list of sequence tagging tasks (panx, udpos) requiring F1 evaluation
+
+for experiments, good to have a config file eg
+{
+  "task": "disrpt-gum",
+  "paths": {
+    "train": "$EXP_DIR/data/disrpt21/eng.rst.gum/eng.rst.gum_train.conllu",
+    "val": "$EXP_DIR/data/disrpt21/eng.rst.gum/eng.rst.gum_dev.conllu",
+    "test": "$EXP_DIR/data/disrpt21/eng.rst.gum/eng.rst.gum_test.conllu"
+  },
+  "name": "disrpt-gum"
+}
+
+arguments are actually passed on to the constructor of the task class (?needs to be checked)
+
+
+=================================================
+Main thing to code:
+  disrtp21-gum
+  starting from panx file
+
+  TODO:
+  - liste des labels dans class principale DisrptGum
+  - @classmethod
+    def _create_examples(cls, data_path, set_type):
+
+test in
+notebook: Segmentation_dataset
+dataset lu correctement.
+
+Test lancement bach
+
+EXP_DIR=exp/
+MODEL_TYPE=roberta-base
+TASK=disrpt21_gum
+
+python3 jiant/proj/simple/runscript.py \
+    run \
+    --run_name simple \
+    --exp_dir ${EXP_DIR} \
+    --data_dir ${EXP_DIR}/tasks \
+    --model_type ${MODEL} \
+    --tasks ${TASK} \
+    --learning_rate 1e-5 \
+    --train_batch_size 16 \
+    --num_train_epochs 3 \
+    --do_save
+
