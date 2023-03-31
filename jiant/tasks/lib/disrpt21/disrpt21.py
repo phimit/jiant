@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from dataclasses import dataclass, field
-from typing import List, Dict, Union, Any, NamedTuple
+from typing import List, Tuple, Dict, Union, Any, NamedTuple
 import sys
 
 # TODO: make meta information a namedtuple
@@ -15,6 +15,8 @@ from jiant.tasks.core import (
     Task,
     TaskTypes,
 )
+
+
 from jiant.tasks.lib.templates.shared import (
     labels_to_bimap,
     create_input_set_from_tokens_and_segments,
@@ -23,6 +25,8 @@ from jiant.tasks.lib.templates.shared import (
 )
 from jiant.utils.python.datastructures import zip_equal
 from jiant.utils.python.io import read_file_lines
+
+
 
 ARBITRARY_OVERLY_LONG_WORD_CONSTRAINT = 100
 # In a rare number of cases, a single word (usually something like a mis-processed URL)
@@ -169,7 +173,7 @@ class DisrptTask(Task):
     # - we reproduce panx subtask system here by giving a corpus name 
     # this influence the reading part too
     # for now, we set the default to gum to avoid problem downstream
-    # - To modify the head (just a projection, we might want to add an LSTM): add parameters in config, 
+    # - To modify the head (just a projection, but we can also have an LSTM): add parameters in config, 
     # declare them here. When the head is created, it has access to the task -> create the model from the task config
     # it's the easiest way to propagate task config to the task head
     # - can it be done for backbone too ? unlikely but must be checked 
@@ -229,6 +233,8 @@ class DisrptTask(Task):
         curr_token_list, curr_label_list = [], []
         data_lines = read_file_lines(data_path, "r", encoding="utf-8")
         examples = []
+        # TODO: namedtuple
+        # store meta information: doc id, sentence id, sentence string (but each token sep by spaces)
         meta = ["","",""]
         idx = 0
         
@@ -252,8 +258,9 @@ class DisrptTask(Task):
                     curr_token_list.append(token)
                     curr_label_list.append(label)
             else:
-                if meta[2]=="":# some corpora dont put the list of tokens in commentary
-                        meta[2] = " ".join(curr_token_list)
+                # FIXED: metadata[sentence_string] should ALWAYS be stored from the list of tokens
+                #if meta[2]=="":# some corpora dont put the list of tokens in commentary
+                meta[2] = " ".join(curr_token_list)
                 examples.append(
                     Example(
                         guid="%s-%s" % (set_type, idx),
@@ -266,9 +273,60 @@ class DisrptTask(Task):
                 curr_token_list, curr_label_list = [], []
                 meta = [meta[0],"",""]
         if curr_token_list:
-            if meta[2]=="":# some corpora dont put the list of tokens in commentary
-                        meta[2] = " ".join(curr_token_list)
+            #if meta[2]=="":# some corpora dont put the list of tokens in commentary
+            meta[2] = " ".join(curr_token_list)
             examples.append(
                 Example(guid="%s-%s" % (idx, idx), tokens=curr_token_list, label_list=curr_label_list,meta=meta)
             )
         return examples
+
+    @classmethod
+    def format_predictions(cls, info_labels, data):
+        """
+        output predictions as saved in eg val_preds.p in the original disrpt format
+
+        info_labels: contains reference label mask corresponding to sub-tokenized input, saved in the cache
+        necessary because the saved prediction tensor does not store explicitely the subtokenization 
+
+
+        data is the content of the torch-saved predictions.
+        it contains the keys: 
+           "meta": is the list of instance meta information, here it should be a tuple as defined above: 
+            (doc_id,sentence_id,sentence string)
+            sentence string should be "tokenized": splitting on spaces will yield the list of tokens
+           "preds": the vector of predictions on subtokens
+        """
+        default_label_idx = 0
+        orig_labels = cls.ORIG_LABELS
+        meta = data["meta"]
+        preds = data["preds"]
+
+        output = []
+
+        for i,instance in enumerate(meta):
+            doc_id, sentence_id, sent_string = instance
+            if doc_id!="": 
+                output.append(f"# doc_id: {doc_id}")
+            output.append(f"# sentence_id: {sentence_id}")
+            output.append(f"# text = {sent_string}")
+            tokens = sent_string.split()
+            # this is were the label_mask should be used
+            label_mask = info_labels[i]["label_mask"]
+            relevant_preds = preds[i][label_mask]
+            outlabels = [orig_labels[j] for j in relevant_preds]
+            try: # nb of predictions does not always match number of tokens if some instance is longer than max_seq_length
+                # can be also an error reading metadata 
+                assert len(outlabels)==len(tokens)
+            except AssertionError:
+                print(f"preds/tokens have different numbers, missing prediction set to default class",file=sys.stderr)
+                print(f"docid={doc_id},sentence_id={sentence_id},sent={sent_string}",file=sys.stderr)
+                print(f"out={len(outlabels)},tokens={len(tokens)}",file=sys.stderr)
+                #raise AssertionError
+                missing_preds = [orig_labels[default_label_idx]]*(len(tokens)-len(outlabels))
+                outlabels.extend(missing_preds)
+            for n,tok in enumerate(tokens):
+                # disrpt format (no feature)
+                # token_id token _ _ _ _ _ _ _ label
+                output.append(f"{n+1}\t{tok}\t"+"\t".join(["_"]*7)+f"\t{outlabels[n]}")
+            output.append("")
+        return output

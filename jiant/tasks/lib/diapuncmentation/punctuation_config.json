@@ -1,0 +1,9 @@
+{
+    "task": "punctuation",
+    "paths": {
+        "train": "/usr/src/data/train/train.txt",
+        "test": "/usr/src/data/test/test.txt",
+        "val": "/usr/src/data/val/val.txt"
+    },
+    "name": "punctuation_isci"
+}

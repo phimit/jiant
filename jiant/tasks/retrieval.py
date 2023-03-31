@@ -88,6 +88,8 @@ from jiant.tasks.lib.mcscript import MCScriptTask
 from jiant.tasks.lib.arct import ArctTask
 from jiant.tasks.lib.winogrande import WinograndeTask
 from jiant.tasks.lib.piqa import PiqaTask
+from jiant.tasks.lib.diapuncmentation.punctuation_task import PunctuationTask
+from jiant.tasks.lib.diapuncmentation.daseg_task import DaSegTask
 
 # added (PM 2022/08)
 from jiant.tasks.lib.disrpt21.disrpt21 import DisrptTask
@@ -187,7 +189,10 @@ TASK_DICT = {
     # new added tasks
     # disrpt segment & connective
     "disrpt21": DisrptTask,
-    "disrpt21_conn": DisrptConnTask
+    "disrpt21_conn": DisrptConnTask,
+    # diapuncmentation seg & punc
+    "punctuation" : PunctuationTask,
+    "daseg": DaSegTask,
 
 }
 
