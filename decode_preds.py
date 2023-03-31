@@ -24,6 +24,7 @@ def convert_prediction_to_disrpt(infile,task,outfile,cache,encoding="utf8"):
         task: name of tasktask
         outfile: filename where to save predictions or "stdout"
     """
+<<<<<<< Updated upstream
     corpus_name = task.split("_")[1]
     if corpus_name in ("pdtb","tdb","cdtb") : 
         task_type = DisrptConnTask
@@ -33,6 +34,9 @@ def convert_prediction_to_disrpt(infile,task,outfile,cache,encoding="utf8"):
     orig_labels = task_type.ORIG_LABELS #for disrpt : ["_","BeginSeg=Yes"] ou ["_","Seg=B-Conn","Seg=I-Conn"]
 
     info_labels = F1TaggingEvaluationScheme.get_labels_from_cache_and_examples(task_type, cache,[])
+=======
+    corpus_name = task.split("_")[1] if "_" in task else ""
+>>>>>>> Stashed changes
     
 
     data = torch.load(infile)[task]

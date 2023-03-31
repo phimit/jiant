@@ -33,11 +33,27 @@ parser.add_argument("--exp-dir",default=EXP_DIR,help="directory where to find da
 # todo: add batch size, epochs, eval_every_step, sth to set early stopping too
 #       and an option for val/testing -> for test, needs to hack the task_config_path cos of error in metrics for test set
 parser.add_argument("--batch-size",default=64,type=int,help="")
+
+parser.add_argument("--max-seq-length",default=128,type=int,help="max nb of subtokens before truncation of inputs")
+parser.add_argument("--sampling-strategy",default="ProportionalMultiTaskSampler",help="task sampling strategy for multi-task learning; default: proportional")
+# needs template so deactivated for now
+#parser.add_argument("--use-config",default=None,help="use external config file for this experiment; overrides everything except what is not set")
+
+# todo: 
+#       an option for val/testing -> for test, needs to hack the task_config_path cos of error in metrics for test set
+parser.add_argument("--batch-size",default=16,type=int,help="")
+parser.add_argument("--gradient-accumulation-steps",default=4,type=int,help="delaying gradient update to allow for larger effective batches")
 parser.add_argument("--epochs",default=1,type=float,help="nb of epochs for training")
 parser.add_argument("--eval-every-step",default=100,type=int,help="")
 parser.add_argument("--no_improvements_for_n_evals",default=5,type=int,
                     help="early stopping after n evals w/o improvements; needs eval-every step to be set")
 parser.add_argument("--co2",action="store_true",default=False,help="track co2 emissions (needs internet access)")
+
+parser.add_argument("--co2",action="store_true",default=False,help="track co2 emissions (needs internet access)")
+parser.add_argument("--fp16",action="store_true",default=False,help="activate mixed precision 16/32bit; needs apex installed")
+
+# dynamic learning rate: warmup_steps_proportion, eg 
+
 #example model names: "bert-base-multilingual-uncased", "roberta-base"
 
 args = parser.parse_args()
@@ -112,15 +128,32 @@ else:
         epochs=args.epochs,
         num_gpus=1,
     ).create_config()
+    # manual additions ... should be handled externally too
+    # 0 args: UniformMultiTaskSampler ProportionalMultiTaskSampler
+    # 1 args: SpecifiedProbMultiTaskSampler "task_to_unweighted_probs" (dict)
+    # 2 args: TemperatureMultiTaskSampler  <check noms: temperature + dict tache:nb exemples
+    jiant_run_config["sampler_config"] = {"sampler_type": args.sampling_strategy}
+    # sampling with more arguments: just added in the same dict
+    # eg:
+    # sampler_config = {
+    #            "sampler_type": "SpecifiedProbMultiTaskSampler",
+    #            "task_to_unweighted_probs": capped_num_examples_dict        
+    # }
+    # ---- saving 
     os.makedirs(os.path.join(EXP_DIR,"run_configs/"), exist_ok=True)
-    py_io.write_json(jiant_run_config,os.path.join(EXP_DIR,"run_configs/jiant_run_config.json"))
+    # TODO: save under different names in each run logging directory
+    OUTPUT_DIR = os.path.join("runs",RUN_NAME)
+    from pathlib import Path
+    Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
+    py_io.write_json(jiant_run_config,os.path.join(EXP_DIR,"run_configs/last_jiant_run_config.json"))
+    py_io.write_json(jiant_run_config,os.path.join(OUTPUT_DIR,"run_config.json"))
     display.show_json(jiant_run_config)
 
     print("looking for model at : ",os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"model/model.p"))
 
     run_args = main_runscript.RunConfiguration(
-        jiant_task_container_config_path=os.path.join(EXP_DIR,"run_configs/jiant_run_config.json"),
-        output_dir=os.path.join("runs",RUN_NAME),
+        jiant_task_container_config_path=os.path.join(EXP_DIR,"run_configs/last_jiant_run_config.json"),
+        output_dir=OUTPUT_DIR,
         hf_pretrained_model_name_or_path=HF_PRETRAINED_MODEL_NAME,
         model_path=os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"model/model.p"),
         model_config_path=os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"/config.json"),
@@ -133,6 +166,7 @@ else:
         do_save=True,
         force_overwrite=True,
     )
+    # TODO: save the run config too (? already saved)
 
     main_runscript.run_loop(run_args)
 
