@@ -1,5 +1,7 @@
 # TODO
 #    x- simple -> normal run
+#     - config disrtp23 : conllu / split
+#        FIXME : bug in saving config file for expe (name hardcoded in jiant/proj/simple/runscript.py (function create_and_write_task_configs)
 #    /- external config
 #    /- argparse for all arguments
 #    - test/prediction mode
@@ -20,7 +22,7 @@ from codecarbon import EmissionsTracker
 
 
 EXP_DIR = "/home/muller/Devel/jiant/exp"
-DATA_DIR = os.path.join(EXP_DIR,"tasks")
+DATA_DIR = os.path.join(EXP_DIR,"tasks","configs")
 
 parser = argparse.ArgumentParser()
 
@@ -29,12 +31,12 @@ parser.add_argument("--run-name",default=None,help="name of the directory where 
 parser.add_argument("--model-name",default="bert-base-multilingual-uncased",help="name of the model to use")
 parser.add_argument("--model-path",default=None,help="path to the model; if model-name is on hugging face, this does not need to be set")
 parser.add_argument("--exp-dir",default=EXP_DIR,help="directory where to find data and configs")
+parser.add_argument("--config-dir",default=DATA_DIR,help="directory where to find task configs, default is EXP_DIR/tasks/configs")
+#parser.add_argument("--input-type",choices=["conllu","split"],default="conllu",help="run on gold sentences (conllu) or automatically sentence-split (split)")
 
 # todo: add batch size, epochs, eval_every_step, sth to set early stopping too
 #       and an option for val/testing -> for test, needs to hack the task_config_path cos of error in metrics for test set
-parser.add_argument("--batch-size",default=64,type=int,help="")
-
-parser.add_argument("--max-seq-length",default=128,type=int,help="max nb of subtokens before truncation of inputs")
+parser.add_argument("--max-seq-length",default=128,type=int,help="max nb of (?sub)tokens before truncation of inputs")
 parser.add_argument("--sampling-strategy",default="ProportionalMultiTaskSampler",help="task sampling strategy for multi-task learning; default: proportional")
 # needs template so deactivated for now
 #parser.add_argument("--use-config",default=None,help="use external config file for this experiment; overrides everything except what is not set")
@@ -47,8 +49,6 @@ parser.add_argument("--epochs",default=1,type=float,help="nb of epochs for train
 parser.add_argument("--eval-every-step",default=100,type=int,help="")
 parser.add_argument("--no_improvements_for_n_evals",default=5,type=int,
                     help="early stopping after n evals w/o improvements; needs eval-every step to be set")
-parser.add_argument("--max-seq-length",default=128,type=int,help="max nb of subtokens before truncation of inputs")
-parser.add_argument("--co2",action="store_true",default=False,help="track co2 emissions (needs internet access)")
 
 parser.add_argument("--co2",action="store_true",default=False,help="track co2 emissions (needs internet access)")
 parser.add_argument("--fp16",action="store_true",default=False,help="activate mixed precision 16/32bit; needs apex installed")
@@ -59,7 +59,8 @@ parser.add_argument("--fp16",action="store_true",default=False,help="activate mi
 
 args = parser.parse_args()
 EXP_DIR = args.exp_dir
-DATA_DIR = os.path.join(EXP_DIR,"tasks")
+#DATA_DIR = os.path.join(EXP_DIR,"tasks")
+DATA_DIR = args.config_dir
 TASK_NAMES = args.tasks
 if args.model_path is None:
     HF_PRETRAINED_MODEL_NAME = args.model_name 
@@ -78,8 +79,10 @@ task_list = TASK_NAMES.split()
 
 # testing the data reader
 for task_name in task_list:
+    #task_config_path=os.path.join(DATA_DIR,f"{task_name}_config.json")
+    #print("config ?",task_config_path)
     tokenize_and_cache.main(tokenize_and_cache.RunConfiguration(
-        task_config_path=os.path.join(DATA_DIR,f"configs/{task_name}_config.json"),
+        task_config_path=os.path.join(DATA_DIR,f"{task_name}_config.json"),
         hf_pretrained_model_name_or_path=HF_PRETRAINED_MODEL_NAME,
         output_dir=f"./cache/{task_name}",
         max_seq_length=args.max_seq_length,
@@ -127,12 +130,13 @@ else:
     # gradient_accumulation_steps = 8 ~= batch 64 with less memory   
 
     jiant_run_config = configurator.SimpleAPIMultiTaskConfigurator(
-        task_config_base_path=os.path.join(DATA_DIR,f"configs/"),
+        task_config_base_path=DATA_DIR,
         task_cache_base_path="./cache",
         train_task_name_list=TASK_NAMES.split(),
         val_task_name_list=TASK_NAMES.split(),
         train_batch_size=args.batch_size, # tony = 2!
         gradient_accumulation_steps =args.gradient_accumulation_steps, # à tester; équivalent à multiplier batch_size mais avec mémoire moindre
+        #gradient_checkpointing=True, # TODO: not available but would be convenient to propagate to trnsformer trainer
         eval_batch_size=1,
         epochs=args.epochs,
         num_gpus=1,
