@@ -42,7 +42,7 @@ def convert_prediction_to_disrpt(infile,task,outfile,cache,encoding="utf8"):
 
     info_labels = F1TaggingEvaluationScheme.get_labels_from_cache_and_examples(task_type, cache,[])
     
-    if task.startswith("disrpt21"):
+    if task.startswith("disrpt"):
         if corpus_name in ("pdtb","tdb","cdtb") : 
             task_type = DisrptConnTask
         else: 
