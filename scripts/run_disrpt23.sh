@@ -33,4 +33,6 @@ mkdir $EXP_DIR/runs
 
 ######### (C) Preprocessing ###########################
 # (C) should be done only once for the final experiment
-# apply a sentence splitter to every .tok
+# apply a sentence splitter to every .tok -> produces a .split file (== silver corpus)
+# (path to script needs to be updated for final version)
+python split_sentences.py -m trankit --gpu $DISRPT23_DATADIR

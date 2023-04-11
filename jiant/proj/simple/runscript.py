@@ -87,7 +87,7 @@ class RunConfiguration(zconf.RunConfig):
         self.val_tasks = self.val_tasks.split(",")
         self.test_tasks = self.test_tasks.split(",")
 
-
+# TODO: the path to config file should not be hardcoded like that
 def create_and_write_task_configs(task_name_list, data_dir, task_config_base_path):
     os.makedirs(task_config_base_path, exist_ok=True)
     task_config_path_dict = {}

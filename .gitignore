@@ -224,7 +224,6 @@ xx
 logerr
 train.sh
 train.sh~
-<<<<<<< HEAD
 exp/tasks/data/disrpt21
 exp/tasks/data/ami_speaker_turns/eval/eval.txt
 exp/tasks/data/ami_speaker_turns/dev/dev.txt
@@ -232,5 +231,3 @@ analysis.zip
 daseg.nohup
 log_punctuation
 punc.nohup
-=======
->>>>>>> 73d661265ec30f3040bf97bb6af59e6d0ac75c7d

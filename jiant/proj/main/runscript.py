@@ -47,6 +47,11 @@ class RunConfiguration(zconf.RunConfig):
     adam_epsilon = zconf.attr(default=1e-8, type=float)
     max_grad_norm = zconf.attr(default=1.0, type=float)
     optimizer_type = zconf.attr(default="adam", type=str)
+    
+    # ==== TODO : add specific adjustment of the model; ideally put in some general config file
+    # but given at run time is ok
+    # string is comma separated list of layers to freeze eg  1,2,3 or range 1-9
+    # freeze_layers = zconf.attr(default="", type=str)
 
     # Specialized config
     no_cuda = zconf.attr(action="store_true")
@@ -93,7 +98,18 @@ def setup_runner(
             jiant_model=jiant_model, weights_path=args.model_path, load_mode=args.model_load_mode
         )
         jiant_model.to(quick_init_out.device)
-
+    # TODO: this is where potential freezing of layers can happen
+    #  arguments would need to be defined in the run configuration above class RunConfiguration(zconf.RunConfig)
+    # test for now
+    # frozen = set(range(12))
+    # sth like: 
+    # encoder = jiant_model.encoder
+    # for name, param in encoder.base_model.named_parameters():
+    # if "layer" in name: # sth like encoder.layer.0.xxx
+    #       layer_nb = name.split(".")[2]
+    #       if int(layer_nb) in frozen:
+    #                 param.requires_grad = False
+    
     optimizer_scheduler = model_setup.create_optimizer(
         model=jiant_model,
         learning_rate=args.learning_rate,
