@@ -14,7 +14,7 @@ import jiant.proj.simple.runscript as simple_run
 import jiant.shared.caching as caching
 import jiant.utils.python.io as py_io
 import jiant.utils.display as display
-from decode_preds import convert_prediction_to_disrpt
+from decode_preds import convert_prediction_to_disrpt, get_last_run
 #from datasets import load_dataset_builder
 import os
 import argparse
@@ -49,7 +49,7 @@ parser.add_argument("--epochs",default=1,type=float,help="nb of epochs for train
 parser.add_argument("--eval-every-step",default=100,type=int,help="")
 parser.add_argument("--no_improvements_for_n_evals",default=5,type=int,
                     help="early stopping after n evals w/o improvements; needs eval-every step to be set")
-
+parser.add_argument("--freeze-layers",default="",help = "freeze layers in the encoder, layers given as string: comma separated list of layers to freeze eg  1,2,3 or range 1-9, default=None")
 parser.add_argument("--co2",action="store_true",default=False,help="track co2 emissions (needs internet access)")
 parser.add_argument("--fp16",action="store_true",default=False,help="activate mixed precision 16/32bit; needs apex installed")
 
@@ -171,6 +171,7 @@ else:
         model_path=os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"model/model.p"),
         model_config_path=os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"/config.json"),
         learning_rate=1e-5, # tony = 1e-3
+        freeze_layers = args.freeze_layers, # freeze layers in the encoder 
         eval_every_steps=args.eval_every_step,
         no_improvements_for_n_evals=args.no_improvements_for_n_evals,
         write_val_preds=True,
@@ -190,10 +191,17 @@ else:
     # TODO: relax assertion that nb predictions = nb of tokens (when truncated sequence because too long for transformer)
     infile = os.path.join("runs",RUN_NAME,"val_preds.p")
     for one_task in task_list:
-        try: 
+        if True: 
             outfile = os.path.join("runs",RUN_NAME,one_task+"_dev.txt")
             convert_prediction_to_disrpt(infile,one_task,outfile,task_dev_caches[one_task])
-        except:
-            print("saved prediction not working with task:",one_task)
+        #except:
+        #    print("saved prediction not working with task:",one_task)
+        # move a few files from the main task dir to the last run dir
+        # best_model, config, metrics, prediction (dev)
+        # TODO: dev/test option       
+        last_exp_dir = get_last_run(os.path.join("runs",RUN_NAME))
+        for one_file in [one_task+"_dev.txt","run_config.json","args.json","val_metrics.json","best_model.p","best_model.metadata.json"]:
+            os.replace(os.path.join("runs",RUN_NAME,one_file),os.path.join(last_exp_dir,one_file))
+            
 
 if CO2_tracking: tracker.stop()

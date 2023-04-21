@@ -24,7 +24,17 @@ from jiant.tasks.lib.diapuncmentation.daseg_task import DaSegTask
 
 import jiant.shared.caching as caching
 
+from glob import glob
+import os.path
 
+
+def get_last_run(path):
+    """retrieve the directory name of the last experiment for a given config. 
+    relies on the name of this being a number built with date+time so max = latest"""
+    last = [x for x in glob(os.path.join(path,"*")) if x.split(os.path.sep)[-1].isdigit()]
+    if last == []:
+        return None
+    return max(last)
 
 def convert_prediction_to_disrpt(infile,task,outfile,cache,encoding="utf8"):
     """ infile: is the torch-saved tensor of predictions
@@ -52,7 +62,7 @@ def convert_prediction_to_disrpt(infile,task,outfile,cache,encoding="utf8"):
     elif task.startswith("daseg"):
         task_type = DaSegTask
     else:
-        print("task not recognized")
+        print("task not recognized", task, infile)
         sys.exit(0)
 
     # contains prediction and label_mask

@@ -221,7 +221,7 @@ class DisrptTask(Task):
         return self._create_examples(data_path=self.path_dict["test"], set_type="test")
 
     @classmethod
-    def _create_examples(cls, data_path, set_type):
+    def _create_examples(cls, data_path, set_type,ignore_MWE=True):
         """disrpt21 format has 10 fields: 
             1 = token number in sentence or text
             2 = token
@@ -229,6 +229,9 @@ class DisrptTask(Task):
             10 has segmentation label + info for syntax/deep syntax all separated by "|"
 
             set_type = train/test/dev if it makes any difference
+            
+            ignore_MWE: should be always true, since segmentation evaluation ignore them anyway and we cant keep track of them
+            (option ignored for now)
         """
         curr_token_list, curr_label_list = [], []
         data_lines = read_file_lines(data_path, "r", encoding="utf-8")
@@ -242,21 +245,22 @@ class DisrptTask(Task):
             data_line = data_line.strip()
             if data_line:
                 if data_line.startswith("#"):
-                    info, value = data_line[1:].strip().split("=",1)
-                    info = info.strip()
-                    if info in cls.META_DOC:
-                        meta[cls.META_DOC[info]] = value.strip()
+                    if "=" in data_line:
+                        info, value = data_line[1:].strip().split("=",1)
+                        info = info.strip()
+                        if info in cls.META_DOC:
+                            meta[cls.META_DOC[info]] = value.strip()
                 else:
-                    _, token, *useless, labels = data_line.split("\t")
+                    id , token, *useless, labels = data_line.split("\t")
                     label_set = set(labels.split("|"))
                     # 0 = _, 1 = segment boudary
                     if cls.ORIG_LABELS[1] in label_set:
                         label = cls.LABELS[1]
                     else:
                         label = cls.LABELS[0]
-                    
-                    curr_token_list.append(token)
-                    curr_label_list.append(label)
+                    if not("-") in id: #ignore MWEs
+                        curr_token_list.append(token)
+                        curr_label_list.append(label)
             else:
                 # FIXED: metadata[sentence_string] should ALWAYS be stored from the list of tokens
                 #if meta[2]=="":# some corpora dont put the list of tokens in commentary

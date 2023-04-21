@@ -246,7 +246,7 @@ class DisrptConnTask(Task):
                     if info=="newdoc id":
                         s = 1
                 else:
-                    _, token, *useless, labels = data_line.split("\t")
+                    id, token, *useless, labels = data_line.split("\t")
                     label_set = set(labels.split("|"))
                     # 0 = _, 1 = B-conn, 2=I-conn
                     # that should be made simpler 
@@ -256,9 +256,9 @@ class DisrptConnTask(Task):
                         label = cls.LABELS[2]
                     else:
                         label = cls.LABELS[0]
-                    
-                    curr_token_list.append(token)
-                    curr_label_list.append(label)
+                    if not("-" in id): #ignore MWE
+                        curr_token_list.append(token)
+                        curr_label_list.append(label)
             else:# end of sentence
                 #if meta[2]=="":# some corpora dont put the list of tokens in commentary
                 meta[2] = " ".join(curr_token_list)

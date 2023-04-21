@@ -51,7 +51,7 @@ class RunConfiguration(zconf.RunConfig):
     # ==== TODO : add specific adjustment of the model; ideally put in some general config file
     # but given at run time is ok
     # string is comma separated list of layers to freeze eg  1,2,3 or range 1-9
-    # freeze_layers = zconf.attr(default="", type=str)
+    freeze_layers = zconf.attr(default="0-8", type=str)
 
     # Specialized config
     no_cuda = zconf.attr(action="store_true")
@@ -98,18 +98,29 @@ def setup_runner(
             jiant_model=jiant_model, weights_path=args.model_path, load_mode=args.model_load_mode
         )
         jiant_model.to(quick_init_out.device)
-    # TODO: this is where potential freezing of layers can happen
-    #  arguments would need to be defined in the run configuration above class RunConfiguration(zconf.RunConfig)
+    # this is where potential freezing of layers can happen
+    # arguments are defined in the run configuration above class RunConfiguration(zconf.RunConfig)
     # test for now
-    # frozen = set(range(12))
-    # sth like: 
-    # encoder = jiant_model.encoder
-    # for name, param in encoder.base_model.named_parameters():
-    # if "layer" in name: # sth like encoder.layer.0.xxx
-    #       layer_nb = name.split(".")[2]
-    #       if int(layer_nb) in frozen:
-    #                 param.requires_grad = False
-    
+    # TODO: refactor this out
+    freeze = args.freeze_layers
+    if freeze!="":
+        frozen = set()
+        for spec in freeze.split(","): 
+            if "-" in spec: # eg 1-9
+                b, e = spec.split("-")
+                frozen = frozen | set(range(int(b),int(e)))
+            else:
+                frozen.add(int(spec))
+        encoder = jiant_model.encoder
+        for name, param in encoder.base_model.named_parameters():
+            #print(name)
+            if "layer" in name: # sth like encoder.layer.0.xxx
+                #print(name)
+                layer_nb = name.split(".")[2]
+                if int(layer_nb) in frozen:
+                    print("******** freezing ",name)
+                    param.requires_grad = False
+    ###########
     optimizer_scheduler = model_setup.create_optimizer(
         model=jiant_model,
         learning_rate=args.learning_rate,
@@ -210,9 +221,10 @@ def run_loop(args: RunConfiguration, checkpoint=None):
             test_results_dict = runner.run_test(
                 task_name_list=runner.jiant_task_container.task_run_config.test_task_list,
             )
-            # added to simplify test evaluation for now; ultimately should rely on test predictions directly 
+            # PM: added to simplify test evaluation for now; ultimately should rely on test predictions directly 
             # !! beware that it needs test labels !! 
             # does not work right now cos metrics not computed -> check runner_run_test + component/evaluate
+            # fixed by a dedicated script decode_preds.py 
             jiant_evaluate.write_val_results(
                 val_results_dict=test_results_dict,
                 metrics_aggregator=runner.jiant_task_container.metrics_aggregator,
