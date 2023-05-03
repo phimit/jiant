@@ -26,7 +26,7 @@ import jiant.shared.caching as caching
 
 from glob import glob
 import os.path
-
+import sys
 
 def get_last_run(path):
     """retrieve the directory name of the last experiment for a given config. 
@@ -38,22 +38,18 @@ def get_last_run(path):
 
 def convert_prediction_to_disrpt(infile,task,outfile,cache,encoding="utf8"):
     """ infile: is the torch-saved tensor of predictions
-        task: name of tasktask
+        task: name of tasktask eg disrpt23_fra_sdrt_annodis_conllu
         outfile: filename where to save predictions or "stdout"
     """
     #corpus_name = task.split("_")[1]
-    corpus_name = task.split("_")[1] if "_" in task else ""
-    if corpus_name in ("pdtb","tdb","cdtb") : 
-        task_type = DisrptConnTask
-    else: 
-        task_type = DisrptTask
+    print("converting ",task,file=sys.stderr)
+    #corpus_type = task.split("_")[2] if "_" in task else ""
 
-    orig_labels = task_type.ORIG_LABELS #for disrpt : ["_","BeginSeg=Yes"] ou ["_","Seg=B-Conn","Seg=I-Conn"]
-
-    info_labels = F1TaggingEvaluationScheme.get_labels_from_cache_and_examples(task_type, cache,[])
+    
     
     if task.startswith("disrpt"):
-        if corpus_name in ("pdtb","tdb","cdtb") : 
+        campaign, corpus_lang, corpus_type, corpus_name, setup = task.split("_")
+        if corpus_type == "pdtb": 
             task_type = DisrptConnTask
         else: 
             task_type = DisrptTask
@@ -64,7 +60,9 @@ def convert_prediction_to_disrpt(infile,task,outfile,cache,encoding="utf8"):
     else:
         print("task not recognized", task, infile)
         sys.exit(0)
-
+    orig_labels = task_type.ORIG_LABELS #for disrpt : ["_","BeginSeg=Yes"] ou ["_","Seg=B-Conn","Seg=I-Conn"]
+    info_labels = F1TaggingEvaluationScheme.get_labels_from_cache_and_examples(task_type, cache,[])
+    
     # contains prediction and label_mask
     data = torch.load(infile)[task]
     if outfile=="stdout":
@@ -90,8 +88,9 @@ if __name__=="__main__":
     parser.add_argument("--encoding",default="utf8",help="output encoding")
     parser.add_argument("--cache-path",default="./cache",
                                     help="path to the general instances cache directory, defaults to ./cache")
-
+    parser.add_argument("--test",action="store_true",default=False,help="operate on test predictions")
     args = parser.parse_args()
+    target = "test" if args.test else "val"
     
-    cache = caching.ChunkedFilesDataCache(os.path.join(args.cache_path,f"{args.task}/val"))
+    cache = caching.ChunkedFilesDataCache(os.path.join(args.cache_path,f"{args.task}/{target}"))
     convert_prediction_to_disrpt(args.infile,args.task,args.outfile,cache,encoding=args.encoding)

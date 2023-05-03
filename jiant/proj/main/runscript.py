@@ -108,7 +108,7 @@ def setup_runner(
         for spec in freeze.split(","): 
             if "-" in spec: # eg 1-9
                 b, e = spec.split("-")
-                frozen = frozen | set(range(int(b),int(e)))
+                frozen = frozen | set(range(int(b),int(e)+1))
             else:
                 frozen.add(int(spec))
         encoder = jiant_model.encoder
@@ -225,13 +225,13 @@ def run_loop(args: RunConfiguration, checkpoint=None):
             # !! beware that it needs test labels !! 
             # does not work right now cos metrics not computed -> check runner_run_test + component/evaluate
             # fixed by a dedicated script decode_preds.py 
-            jiant_evaluate.write_val_results(
-                val_results_dict=test_results_dict,
-                metrics_aggregator=runner.jiant_task_container.metrics_aggregator,
-                output_dir=args.output_dir,
-                verbose=True,
-                path = "test_metrics.json"
-            )
+            # jiant_evaluate.write_val_results(
+            #     val_results_dict=test_results_dict,
+            #     metrics_aggregator=runner.jiant_task_container.metrics_aggregator,
+            #     output_dir=args.output_dir,
+            #     verbose=True,
+            #     path = "test_metrics.json"
+            # )
             jiant_evaluate.write_preds(
                 eval_results_dict=test_results_dict,
                 path=os.path.join(args.output_dir, "test_preds.p"),

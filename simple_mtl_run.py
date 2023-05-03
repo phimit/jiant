@@ -43,6 +43,9 @@ parser.add_argument("--sampling-strategy",default="ProportionalMultiTaskSampler"
 
 # todo: 
 #       an option for val/testing -> for test, needs to hack the task_config_path cos of error in metrics for test set
+parser.add_argument("--test",action="store_true",default=False,help="do the final test evaluation")
+# TODO: write corresponding code in run below
+#parser.add_argument("--ood",default=[],help="list of out-of-domain evaluation tasks their config files need to exist and have no train;")
 parser.add_argument("--batch-size",default=16,type=int,help="")
 parser.add_argument("--gradient-accumulation-steps",default=4,type=int,help="delaying gradient update to allow for larger effective batches")
 parser.add_argument("--epochs",default=1,type=float,help="nb of epochs for training")
@@ -58,6 +61,12 @@ parser.add_argument("--fp16",action="store_true",default=False,help="activate mi
 #example model names: "bert-base-multilingual-uncased", "roberta-base"
 
 args = parser.parse_args()
+args_dict = vars(args)
+kept_args = ["batch_size","epochs","gradient_accumulation_steps","max_seq_length","sampling-strategy"]
+
+hyper_params = {k:v for k,v in args_dict.items() if k in kept_args}
+
+
 EXP_DIR = args.exp_dir
 #DATA_DIR = os.path.join(EXP_DIR,"tasks")
 DATA_DIR = args.config_dir
@@ -78,6 +87,8 @@ if CO2_tracking: tracker = EmissionsTracker()
 task_list = TASK_NAMES.split()
 
 # testing the data reader
+# TODO 0-shot: 0-shot tasks needs to be declared separately with phases = ["val"]
+# TODO testing: ? phrases = test ?
 for task_name in task_list:
     #task_config_path=os.path.join(DATA_DIR,f"{task_name}_config.json")
     #print("config ?",task_config_path)
@@ -86,11 +97,12 @@ for task_name in task_list:
         hf_pretrained_model_name_or_path=HF_PRETRAINED_MODEL_NAME,
         output_dir=f"./cache/{task_name}",
         max_seq_length=args.max_seq_length,
-        phases=["train", "val"],
+        phases=["train", "val"]+ ([] if not(args.test) else ["test"]) ,
         smart_truncate = True,
     ))
 
 task_dev_caches = {task_name:caching.ChunkedFilesDataCache(f"./cache/{task_name}/val") for task_name in task_list}
+task_test_caches = {task_name:caching.ChunkedFilesDataCache(f"./cache/{task_name}/test") for task_name in task_list}
 
 #chunk = caching.ChunkedFilesDataCache("./cache/disrpt21_gum/train").load_chunk(0)#[0]["data_row"]
 #for one in chunk[:3]:
@@ -134,6 +146,9 @@ else:
         task_cache_base_path="./cache",
         train_task_name_list=TASK_NAMES.split(),
         val_task_name_list=TASK_NAMES.split(),
+        # TODO:
+        #    - for sequential learning or merged corpora, this should be adapted to the list of subtask
+        test_task_name_list=TASK_NAMES.split(),
         train_batch_size=args.batch_size, # tony = 2!
         gradient_accumulation_steps =args.gradient_accumulation_steps, # à tester; équivalent à multiplier batch_size mais avec mémoire moindre
         #gradient_checkpointing=True, # TODO: not available but would be convenient to propagate to trnsformer trainer
@@ -141,6 +156,29 @@ else:
         epochs=args.epochs,
         num_gpus=1,
     ).create_config()
+    # TODO: out of domain evaluation: needs to modify train/val task names
+    # jiant_run_config = configurator.SimpleAPIMultiTaskConfigurator(
+    # task_config_base_path="./tasks/configs",
+    # task_cache_base_path="./cache",
+    # train_task_name_list=["mnli"],
+    # val_task_name_list=["mnli", "xnli_de", "xnli_zh"],
+    # train_batch_size=32,
+    # eval_batch_size=64,
+    # epochs=0.1,
+    # num_gpus=1,
+    # ).create_config()
+    #display.show_json(jiant_run_config)
+    ################# BUT ALSO THIS ########################"
+    # make all tasks point to the trained head ; could be any name ?
+    #jiant_run_config["taskmodels_config"]["task_to_taskmodel_map"] = {
+    # "mnli": "nli_model",
+    # "xnli_de": "nli_model",
+    # "xnli_zh": "nli_model",
+    #}
+    #os.makedirs("./run_configs/", exist_ok=True)
+    #py_io.write_json(jiant_run_config, "./run_configs/jiant_run_config.json")
+    
+    
     # manual additions ... should be handled externally too
     # 0 args: UniformMultiTaskSampler ProportionalMultiTaskSampler
     # 1 args: SpecifiedProbMultiTaskSampler "task_to_unweighted_probs" (dict)
@@ -153,6 +191,8 @@ else:
     #            "task_to_unweighted_probs": capped_num_examples_dict        
     # }
     # ---- saving 
+    # experimental additional meta_data
+    jiant_run_config["specific_hyper_parameters"] = hyper_params
     os.makedirs(os.path.join(EXP_DIR,"run_configs/"), exist_ok=True)
     # TODO: save under different names in each run logging directory
     OUTPUT_DIR = os.path.join("runs",RUN_NAME)
@@ -175,13 +215,30 @@ else:
         eval_every_steps=args.eval_every_step,
         no_improvements_for_n_evals=args.no_improvements_for_n_evals,
         write_val_preds=True,
+        write_test_preds=True if args.test else False,
         fp16=args.fp16,
         do_train=True,
         do_val=True,
+        #keep_checkpoint_when_done=True,
         do_save=True,
         force_overwrite=True,
     )
-    # TODO: save the run config too (? already saved)
+    ################################################""
+    # TODO: OUT OF DOMAIN RUN 
+    ######################
+    # run_args = main_runscript.RunConfiguration(
+    # jiant_task_container_config_path="./run_configs/jiant_run_config.json",
+    # output_dir="./runs/run1",
+    # hf_pretrained_model_name_or_path="xlm-roberta-base",
+    # model_path="./models/xlm-roberta-base/model/model.p",
+    # model_config_path="./models/xlm-roberta-base/model/config.json",
+    # learning_rate=1e-5,
+    # eval_every_steps=500,
+    # do_train=True,
+    # do_val=True,
+    # force_overwrite=True,
+    # )
+
 
     main_runscript.run_loop(run_args)
 
@@ -189,18 +246,24 @@ else:
     # right now this only provably works for one task at a time
     # TODO: check pred file in multi-task exps
     # TODO: relax assertion that nb predictions = nb of tokens (when truncated sequence because too long for transformer)
-    infile = os.path.join("runs",RUN_NAME,"val_preds.p")
+    val_infile = os.path.join("runs",RUN_NAME,"val_preds.p")
+    test_infile = os.path.join("runs",RUN_NAME,"test_preds.p")
     for one_task in task_list:
         if True: 
             outfile = os.path.join("runs",RUN_NAME,one_task+"_dev.txt")
-            convert_prediction_to_disrpt(infile,one_task,outfile,task_dev_caches[one_task])
+            convert_prediction_to_disrpt(val_infile,one_task,outfile,task_dev_caches[one_task])
+            if args.test:
+                outfile = os.path.join("runs",RUN_NAME,one_task+"_test.txt")
+                convert_prediction_to_disrpt(test_infile,one_task,outfile,task_test_caches[one_task])
         #except:
         #    print("saved prediction not working with task:",one_task)
         # move a few files from the main task dir to the last run dir
         # best_model, config, metrics, prediction (dev)
         # TODO: dev/test option       
         last_exp_dir = get_last_run(os.path.join("runs",RUN_NAME))
-        for one_file in [one_task+"_dev.txt","run_config.json","args.json","val_metrics.json","best_model.p","best_model.metadata.json"]:
+        files_to_move = [one_task+"_dev.txt","run_config.json","args.json","val_metrics.json","best_model.p","best_model.metadata.json"]
+        #if args.test: files_to_move.append(one_task+"_test.txt")
+        for one_file in files_to_move:
             os.replace(os.path.join("runs",RUN_NAME,one_file),os.path.join(last_exp_dir,one_file))
             
 

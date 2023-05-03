@@ -24,7 +24,7 @@ export DISRPT23_DATADIR=/home/muller/jiant/exp/tasks/data/disrpt23
 export EXP_DIR=/home/muller/jiant/exp/
 mkdir $EXP_DIR/tasks/configs/disrpt23
 # generating configuration scripts
-python $JIANT_DIR/generate_configs.py $DISRPT23_DATADIR $EXP_DIR/tasks/configs/disrpt23
+python $JIANT_DIR/scripts/generate_configs.py $DISRPT23_DATADIR $EXP_DIR/tasks/configs/disrpt23
 # loading the necessary models
 mkdir $EXP_DIR/models
 python $JIANT_DIR/install_models.py xlm-roberta-base
@@ -36,3 +36,12 @@ mkdir $EXP_DIR/runs
 # apply a sentence splitter to every .tok -> produces a .split file (== silver corpus)
 # (path to script needs to be updated for final version)
 python split_sentences.py -m trankit --gpu $DISRPT23_DATADIR
+
+########## (D) training and prediction ####################
+
+###### D.1 corpus grouping #########
+
+###### D.2 training ########
+
+
+

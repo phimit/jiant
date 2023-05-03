@@ -1,23 +1,71 @@
 TODO list jiant/expés segmentation
 
 - Disrpt23 priorities
-  x- one config file per run, instead of last one in corpus rundir
+  x- correct split alignment errors: tur, eng.pdtb, rus, zho, eus
+  x- saved predictions fail for pdtb ? 
   - launch model in prediction mode on tests
+  x- read hyperparams from config files for stat collections
+   - merge corpus (cf script Mortezza dans discut21/contextual_embeddings/merge.sh and preprocess in main.sh)
+        do simple pretraining (eg all spa) + fine-tuning (separate evals)
+        do sequential learning keeping only the encoder between different languages
+            eg spa1 -> spa2 -> por1 -> por2 -> fra etc
+        cf examples/notebooks/jiant_STILTs_Example.ipynb
+   - test zero shot on ted
+        cf examples/notebooks/jiant_XLNI_Example.ipynb
+   - launch seg_eval for final scores
+
+Experimental tests
+  - test batch size / roberta base (16, 32, 64) / large 32 ?
+  - test freeze more layers roberta large and batch size ?
+
+  - Adapters, juste use: 
+  model = AutoAdapterModel.from_pretrained(args.transformer_model) 
+  config = AutoConfig.from_pretrained("xlm-roberta-base")
+  active_adapter = model.load_adapter(adapter_name,                                   
+                        config = adapter_name + "/adapter_config.json") 
+                        or config = config
+  model.set_active_adapters(active_adapter)
+
+
   - train from checkpoint
     trainer args
        run_with_continue
        save_checkpoint_every_steps=args.save_checkpoint_every_steps -> checkpoint.p
        delete_checkpoint_if_done (no)
 
-  - correct split alignment errors: tur, eng.pdtb, rus, zho, eus
-  x- launch conllu 
+  ========================
+  Adapters: notebook example for mad-x / adapter huggingface doc/lib/github
+
+  from transformers import AutoConfig, AutoAdapterModel
+
+    config = AutoConfig.from_pretrained(
+        "xlm-roberta-base",
+    )
+    model = AutoAdapterModel.from_pretrained(
+    "xlm-roberta-base",
+    config=config,
+    )
+    from transformers import AdapterConfig
+
+# Load the language adapters
+lang_adapter_config = AdapterConfig.load("pfeiffer", reduction_factor=2)
+model.load_adapter("en/wiki@ukp", config=lang_adapter_config)
+model.load_adapter("zh/wiki@ukp", config=lang_adapter_config)
+model = AutoAdapterModel.from_pretrained(args.transformer_model) 
+active_adapter = model.load_adapter(adapter_name,                     
+config = adapter_name + "/adapter_config.json") model.set_active_adapters(active_adapter)
+
+model.train_adapter(["copa"])
+# Unfreeze and activate stack setup
+model.active_adapters = Stack("en", "copa")
+===========================
 
 
 
 - More complete configurations 
     ?- for each task training (eg max seq length) separate from model definition in task config
         cf script configurator
-    - explicitely stored for each run ? oui mais seulement dernier run dans le dir 
+    x- explicitely stored for each run ? oui mais seulement dernier run dans le dir 
         -> change save config in main script
     x- ou mettre / sampling strategies pour MTL cf jiant/proj/main/components/task_sampler.py
         cf plus bas liste des samplers
@@ -55,7 +103,7 @@ TODO list jiant/expés segmentation
     - comparer autres modèles ? 
         - mBert cased
         - mBART ? implique changer pas mal de trucs
-        - xlm large -> au moins sur qq (petits) corpus / pas sur que ça passe
+        x- xlm large -> au moins sur qq (petits) corpus / pas sur que ça passe
         - try adapaters for better fine-tuning ? https://github.com/adapter-hub/adapter-transformers
           allège aussi l'empreinte mémoire. 
           aussi: LORA 

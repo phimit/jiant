@@ -20,7 +20,7 @@ tasks = set(['deu_rst_pcc', 'eng_dep_scidtb', 'eng_rst_gum', 'eng_rst_rstdt', 'e
  'eus_rst_ert', 'fas_rst_prstc', 'fra_sdrt_annodis',  'nld_rst_nldt', 
  'por_rst_cstn', 'rus_rst_rrt', 'spa_rst_rststb', 'spa_rst_sctb',  
  'zho_dep_scidtb',  'zho_rst_gcdt', 'zho_rst_sctb'])
-pdtb_tasks = set(['eng_pdtb_pdtb','ita_pdtb_luna','tur_pdtb_tdb','zho_pdtb_cdtb',])
+pdtb_tasks = set(['eng_pdtb_pdtb','ita_pdtb_luna','por_pdtb_crpc','tha_pdtb_tdtb','tur_pdtb_tdb','zho_pdtb_cdtb',])
 
 models = {
     "bert":"bert-base-multilingual-uncased",
@@ -164,7 +164,8 @@ def read_final_metrics(path,dataset="val",best_metadata=False):
     #print(data)
     results = []
     if best_metadata: data = data["val_state"]["metrics"]
-    params = read_run_config(path,keep=["freeze_layers"])
+    params = read_args_config(path,keep=["freeze_layers","learning_rate"])
+    params.update(read_run_config(path,keep=["real_batch_size","eval_subset_num","epochs","max_seq_length"]))
     for key in data: 
         if key!="aggregated":
             task = key
@@ -178,10 +179,38 @@ def read_final_metrics(path,dataset="val",best_metadata=False):
             results.append(["_".join(task),task_type]+metrics+list(params.values()))
     return pds.DataFrame(results,columns=["task","task_type","precision","recall","f1"]+list(params.keys()))
 
-def read_run_config(path,keep=["freeze_layers"]):
-    filename = "args.json"
+def read_args_config(path,keep=["freeze_layers"]):
+    filename = "args.json" 
+    # args.json is useful for getting frozen layers
+    # run_config 
     data = json.load(open(os.path.join(path,filename)))
-    return {x:data[x] for x in keep}
+    if keep is not None:
+        return {x:data[x] for x in keep}
+    else:
+        return data
+    
+    # "task_specific_configs_dict": {
+    # "disrpt23_eng_rst_rstdt_conllu": {
+    #   "train_batch_size": 1,
+    #   "eval_batch_size": 1,
+    #   "gradient_accumulation_steps": 8,
+
+def read_run_config(path,keep=["real_batch_size","eval_subset_num","epochs","max_seq_length"]):
+    filename = "run_config.json" 
+    # args.json is useful for getting frozen layers
+    # run_config 
+    data = json.load(open(os.path.join(path,filename)))
+    # only one task per run except in multi-task
+    # TODO: check MT
+    result = list(data["task_specific_configs_dict"].values())[0]
+    result.update(data.get("specific_hyper_parameters",{}))
+    
+    result["real_batch_size"] = int(result["train_batch_size"]*result["gradient_accumulation_steps"])
+    
+    if keep is not None:
+        return {x:result.get(x) for x in keep}
+    else:
+        return result
  
 def test_get_all_runs(path):
     """path points to a run with subexperiments"""
