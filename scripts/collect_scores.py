@@ -7,7 +7,10 @@ corpus+conllu/split+model eg deu.rst.pcc / conllu / roberta base
 inside each of these, there can be multiple runs saved in their own subdirs (named based on time). originally jiant saved only one set of args for that
 but it's now modified to move prediction+metrics+config to each subdir
 
-
+TODO: 
+  - read val_metrics instead of train for final evaluation, since this is the only place where test/0-shot/merged evaluation are going to be listed correctly
+    -> also use the train_corpora / task distinction 
+  - could define functions to call seg_eval on a bunch of prediction files here ? 
 
 """
 
@@ -15,6 +18,10 @@ import pandas as pds
 import os.path
 from glob import glob
 import json
+import shutil
+from string import Template
+
+############################################################################################
 
 tasks = set(['deu_rst_pcc', 'eng_dep_scidtb', 'eng_rst_gum', 'eng_rst_rstdt', 'eng_sdrt_stac', 
  'eus_rst_ert', 'fas_rst_prstc', 'fra_sdrt_annodis',  'nld_rst_nldt', 
@@ -22,9 +29,16 @@ tasks = set(['deu_rst_pcc', 'eng_dep_scidtb', 'eng_rst_gum', 'eng_rst_rstdt', 'e
  'zho_dep_scidtb',  'zho_rst_gcdt', 'zho_rst_sctb'])
 pdtb_tasks = set(['eng_pdtb_pdtb','ita_pdtb_luna','por_pdtb_crpc','tha_pdtb_tdtb','tur_pdtb_tdb','zho_pdtb_cdtb',])
 
+# where to look for out-of-domain corpora predictions
+ood_tasks = {"tur_pdtb_tedm":'tur_pdtb_tdb',
+             "por.pdtb.tedm":'por_pdtb_crpc',
+             "eng.pdtb.tedm":"eng.pdtb.pdtb",
+             "eng.dep.covdtb":"eng.dep.scidtb",
+             }
+
 models = {
+    #"bert":"bert-base-multilingual-uncased",
     "bert":"bert-base-multilingual-uncased",
-    #"bert":"bert-base-multilingual-cased",
     "roberta": "xlm-roberta-base",
     "roberta-large": "xlm-roberta-large",
 }
@@ -33,6 +47,12 @@ config = {"exp_dir":"../runs",
           "tasks" : tasks,
           "models": models,
          }
+### template of prediction file zho.dep.scidtb_dev_pred.conllu
+### currently F1 disrpt23_zho_dep_scidtb_conllu_dev.txt
+### but should move to F2 normalized as zho.dep.scidtb_dev.conllu.pred
+_prediction_file_template1 = Template("disrpt23_${corpus}_${task_type}_${target}.txt")
+_prediction_file_template2 = Template("${corpus}_${target}.${task_type}.pred")
+
 
 ########################################################################################
 ####  various path manipulations according to conventions used in the main run script
@@ -76,6 +96,7 @@ def get_last_run(path):
     last = get_all_run_dirs(path)
     if last == []:
         return None
+    # FIXME: should be max(int(last)), but works for now
     return max(last)
 
 #####################################################################
@@ -130,7 +151,12 @@ def collect_log(tasks,models,logtype,task_type,config):
                 print(path)
                 logs = get_log(path,logtype)
                 #print(logs.columns)
-                logs["setup"] = "single" if not(MTL) else "MTL: "+task
+                if MTL:   
+                    logs["setup"] = "MTL: "+task
+                elif "merged" in task:
+                    logs["setup"] = "merged: "+task
+                else:
+                    logs["setup"] = "single" 
                 logs["model"] = m
                 logs["task_type"] = task_type
                 merged.append(logs)
@@ -241,13 +267,52 @@ def collect_final_result(tasks,models,config,task_type="conllu",dataset="val",be
             
     return pds.concat(merged)
 
-
-
+#val_infile = os.path.join("runs",RUN_NAME,"val_preds.p")
+#test_infile = os.path.join("runs",RUN_NAME,"test_preds.p")
+def copy_all_predictions(outdir,tasks,model,config=config,task_type="conllu",target="val",template=_prediction_file_template1):
+    """copy all predictions (val, test, or both) from latest runs on a set of tasks for one model+type to outdir
+    
+    tasks: list of tasknames eg disrpt23_deu_rst_pcc
+    model: name of model used for experiment, since it determines the name of the directory where the results are, eg roberta
+    target: val, dev(=val), test, both
+    task_type: conllu or tok (equivalently, split)
+    template: template for name of prediction file. originally template1, will be moved to template2
+    config: a dictionary with some info see default constant at beginning of module. sets the base directory for file operation, only thing used here
+    
+    TODO: check for both for robustness
+    """
+    for task in tasks:
+        # probably wouldnt work with MTL results
+        #MTL = " " in task #MTL exp
+        #if True:
+        try: 
+            path = retrieve_expe_dir(task,task_type,model,config)
+            old_format = (template==_prediction_file_template1)
+            sep = "_" if old_format else "."
+            corpus = sep.join(task.split("_")[:])
+            todo = []
+            if target in {"val","dev","both"}:
+                todo = ["dev"]
+            if target in {"test","both"}:
+                todo.append("test")
+            for one in todo: 
+                last_run = get_last_run(path)
+                prediction_file = template.substitute(corpus=corpus,task_type=task_type,target=one)
+                if old_format:# let's normalise this to template2
+                    outfile = _prediction_file_template2.substitute(corpus=corpus.replace("_","."),task_type=task_type,target=one)
+                else:
+                    outfile=""
+                shutil.copy2(os.path.join(last_run,prediction_file),os.path.join(outdir,outfile))
+            
+        #else:
+        except:
+            print("could not find prediction data for",task,prediction_file)
+        
 
 # testing
 if __name__=="__main__":
     # config contains all info to run this: mapping of tasks / main run directory
-    val_scores = collect_final_result(config["tasks"],["roberta","roberta-large"],config,best_metadata=False)
+    val_scores = collect_final_result(config["tasks"],["roberta","roberta-large","bert"],config,best_metadata=False)
     
     # various tests
     TESTING = False

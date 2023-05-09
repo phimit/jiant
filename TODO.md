@@ -3,15 +3,18 @@ TODO list jiant/expés segmentation
 - Disrpt23 priorities
   x- correct split alignment errors: tur, eng.pdtb, rus, zho, eus
   x- saved predictions fail for pdtb ? 
-  - launch model in prediction mode on tests
+  x- launch model in prediction mode on tests
   x- read hyperparams from config files for stat collections
-   - merge corpus (cf script Mortezza dans discut21/contextual_embeddings/merge.sh and preprocess in main.sh)
-        do simple pretraining (eg all spa) + fine-tuning (separate evals)
-        do sequential learning keeping only the encoder between different languages
+  /- merge corpus (cf script Mortezza dans discut21/contextual_embeddings/merge.sh and preprocess in main.sh)
+        x - do simple pretraining (eg all spa) + fine-tuning (separate evals)
+        - do sequential learning keeping only the encoder between different languages
             eg spa1 -> spa2 -> por1 -> por2 -> fra etc
-        cf examples/notebooks/jiant_STILTs_Example.ipynb
-   - test zero shot on ted
+           cf examples/notebooks/jiant_STILTs_Example.ipynb
+  x- test zero shot on ted + merged
         cf examples/notebooks/jiant_XLNI_Example.ipynb
+   - update score collection 
+       - for merged corpora
+       - for MT
    - launch seg_eval for final scores
 
 Experimental tests

@@ -16,7 +16,7 @@ import jiant.utils.python.io as py_io
 import jiant.utils.display as display
 from decode_preds import convert_prediction_to_disrpt, get_last_run
 #from datasets import load_dataset_builder
-import os
+import os, sys
 import argparse
 from codecarbon import EmissionsTracker
 
@@ -28,8 +28,8 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument("tasks",help="a string listing some tasks")
 parser.add_argument("--run-name",default=None,help="name of the directory where to log experiments; if not set, will combine task and model")
-parser.add_argument("--model-name",default="bert-base-multilingual-uncased",help="name of the model to use")
-parser.add_argument("--model-path",default=None,help="path to the model; if model-name is on hugging face, this does not need to be set")
+parser.add_argument("--model-name",default="bert-base-multilingual-uncased",help="name of the base model to use")
+parser.add_argument("--model-path",default=None,help="path to the model; if model-name is on hugging face, this does not need to be set; otherwise this is a local model, different from base model")
 parser.add_argument("--exp-dir",default=EXP_DIR,help="directory where to find data and configs")
 parser.add_argument("--config-dir",default=DATA_DIR,help="directory where to find task configs, default is EXP_DIR/tasks/configs")
 #parser.add_argument("--input-type",choices=["conllu","split"],default="conllu",help="run on gold sentences (conllu) or automatically sentence-split (split)")
@@ -44,8 +44,14 @@ parser.add_argument("--sampling-strategy",default="ProportionalMultiTaskSampler"
 # todo: 
 #       an option for val/testing -> for test, needs to hack the task_config_path cos of error in metrics for test set
 parser.add_argument("--test",action="store_true",default=False,help="do the final test evaluation")
+parser.add_argument("--predict-only",action="store_true",default=False,help="prediction on val/test without training; model-path needs to be set and model-name must indicate the base model ")
+
 # TODO: write corresponding code in run below
-#parser.add_argument("--ood",default=[],help="list of out-of-domain evaluation tasks their config files need to exist and have no train;")
+# ood will cover two cases: 
+#    - 0-shot eval for instance on the pdtb/tedm data
+#    - merged corpora, where eval happens on the separate corpora, seen as "ood" tasks for the main model (although they were in the merged train)
+#      list of ood will be list of tasks, eg disrpt23_tur_pdtb_tedm_conllu, with corresponding config files
+parser.add_argument("--ood",default="",help="list of comma separated out-of-domain evaluation tasks their config files need to exist and have no train;")
 parser.add_argument("--batch-size",default=16,type=int,help="")
 parser.add_argument("--gradient-accumulation-steps",default=4,type=int,help="delaying gradient update to allow for larger effective batches")
 parser.add_argument("--epochs",default=1,type=float,help="nb of epochs for training")
@@ -66,6 +72,7 @@ kept_args = ["batch_size","epochs","gradient_accumulation_steps","max_seq_length
 
 hyper_params = {k:v for k,v in args_dict.items() if k in kept_args}
 
+print(args)
 
 EXP_DIR = args.exp_dir
 #DATA_DIR = os.path.join(EXP_DIR,"tasks")
@@ -74,7 +81,7 @@ TASK_NAMES = args.tasks
 if args.model_path is None:
     HF_PRETRAINED_MODEL_NAME = args.model_name 
     MODEL_NAME = HF_PRETRAINED_MODEL_NAME
-else: 
+else:# model specified = local (for prediction); TODO needs to be careful with names 
     HF_PRETRAINED_MODEL_NAME = args.model_name
     MODEL_NAME = HF_PRETRAINED_MODEL_NAME.split("/")[-1]
 
@@ -89,20 +96,39 @@ task_list = TASK_NAMES.split()
 # testing the data reader
 # TODO 0-shot: 0-shot tasks needs to be declared separately with phases = ["val"]
 # TODO testing: ? phrases = test ?
-for task_name in task_list:
-    #task_config_path=os.path.join(DATA_DIR,f"{task_name}_config.json")
-    #print("config ?",task_config_path)
-    tokenize_and_cache.main(tokenize_and_cache.RunConfiguration(
-        task_config_path=os.path.join(DATA_DIR,f"{task_name}_config.json"),
-        hf_pretrained_model_name_or_path=HF_PRETRAINED_MODEL_NAME,
-        output_dir=f"./cache/{task_name}",
-        max_seq_length=args.max_seq_length,
-        phases=["train", "val"]+ ([] if not(args.test) else ["test"]) ,
-        smart_truncate = True,
-    ))
+if not(args.predict_only):
+    for task_name in task_list:
+        #task_config_path=os.path.join(DATA_DIR,f"{task_name}_config.json")
+        #print("config ?",task_config_path)
+        tokenize_and_cache.main(tokenize_and_cache.RunConfiguration(
+            task_config_path=os.path.join(DATA_DIR,f"{task_name}_config.json"),
+            hf_pretrained_model_name_or_path=HF_PRETRAINED_MODEL_NAME,
+            output_dir=f"./cache/{task_name}",
+            max_seq_length=args.max_seq_length,
+            phases=["train", "val","test"]+ ([] if not(args.test) else ["test"]) ,
+            smart_truncate = True,
+        ))
+    
+    
+if args.ood:
+    print(f"ood tasks = {args.ood}",file=sys.stderr)
+    args.ood = args.ood.split(",")
+    # TODO: transform args.ood en liste
+    for task_name in args.ood:
+        tokenize_and_cache.main(tokenize_and_cache.RunConfiguration(
+            task_config_path=os.path.join(DATA_DIR,f"{task_name}_config.json"),
+            hf_pretrained_model_name_or_path=HF_PRETRAINED_MODEL_NAME,
+            output_dir=f"./cache/{task_name}",
+            # [done] TODO: or test if in test mode (args.test)
+            phases=["val"]+ ([] if not(args.test) else ["test"]),
+            smart_truncate = True,
+        ))
+else:
+    args.ood = []
 
-task_dev_caches = {task_name:caching.ChunkedFilesDataCache(f"./cache/{task_name}/val") for task_name in task_list}
-task_test_caches = {task_name:caching.ChunkedFilesDataCache(f"./cache/{task_name}/test") for task_name in task_list}
+task_dev_caches = {task_name:caching.ChunkedFilesDataCache(f"./cache/{task_name}/val") for task_name in task_list+args.ood}
+if args.test:
+    task_test_caches = {task_name:caching.ChunkedFilesDataCache(f"./cache/{task_name}/test") for task_name in task_list+args.ood}
 
 #chunk = caching.ChunkedFilesDataCache("./cache/disrpt21_gum/train").load_chunk(0)#[0]["data_row"]
 #for one in chunk[:3]:
@@ -119,23 +145,40 @@ torch.cuda.empty_cache()
 
 
 if CO2_tracking: tracker.start()
-if SIMPLE: 
-    args = simple_run.RunConfiguration(
-            run_name=RUN_NAME,
-            exp_dir=EXP_DIR,
-            data_dir=DATA_DIR,
-            hf_pretrained_model_name_or_path=HF_PRETRAINED_MODEL_NAME,
-            #task_config_base_path=os.path.join(DATA_DIR,"/tasks/configs"),
-            #tasks=TASK_NAME.split(),
-            train_task_name_list=TASK_NAMES.split(),
-            val_task_name_list=TASK_NAMES.split(),
-            eval_every_steps=args.eval_every_step,
-            train_batch_size=args.batch_size,
-            num_train_epochs=30,
-            write_val_preds=True,
-            
+
+if args.predict_only: 
+    jiant_run_config = configurator.SimpleAPIMultiTaskConfigurator( 
+        task_config_base_path=DATA_DIR,
+        task_cache_base_path="./cache",
+        #train_task_name_list=TASK_NAMES.split(),
+        val_task_name_list=TASK_NAMES.split(),
+        test_task_name_list=TASK_NAMES.split(),
+        train_batch_size=args.batch_size, # tony = 2!
+        #gradient_accumulation_steps =args.gradient_accumulation_steps, # à tester; équivalent à multiplier batch_size mais avec mémoire moindre
+        #gradient_checkpointing=True, # TODO: not available but would be convenient to propagate to trnsformer trainer
+        eval_batch_size=1,
+        epochs=args.epochs,
+        num_gpus=1,
+        ).create_config()
+    os.makedirs("./run_configs/", exist_ok=True)
+    py_io.write_json(jiant_run_config, "./run_configs/predict_run_config.json")
+    display.show_json(jiant_run_config)
+
+    run_args = main_runscript.RunConfiguration(
+        jiant_task_container_config_path="./run_configs/predict_run_config.json",
+        output_dir=os.path.join("runs",RUN_NAME),
+        hf_pretrained_model_name_or_path="roberta-base",
+        model_path=os.path.join(args.model_path,"best_model.p"), # Loading the best model
+        #model_load_mode="partial",
+        model_config_path=os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"/config.json"),
+        #learning_rate=1e-5,
+        #eval_every_steps=500,
+        do_train=False,
+        do_val=True,
+        no_cuda=True,
+        #force_overwrite=True,
         )
-    simple_run.run_simple(args)
+    main_runscript.run_loop(run_args)
 else:
     # should play with HF trainer, which accepts options like
     # per_device_train_batch_size = 8,
@@ -145,10 +188,10 @@ else:
         task_config_base_path=DATA_DIR,
         task_cache_base_path="./cache",
         train_task_name_list=TASK_NAMES.split(),
-        val_task_name_list=TASK_NAMES.split(),
+        val_task_name_list=TASK_NAMES.split()+args.ood,
         # TODO:
         #    - for sequential learning or merged corpora, this should be adapted to the list of subtask
-        test_task_name_list=TASK_NAMES.split(),
+        #test_task_name_list=TASK_NAMES.split()+args.ood,
         train_batch_size=args.batch_size, # tony = 2!
         gradient_accumulation_steps =args.gradient_accumulation_steps, # à tester; équivalent à multiplier batch_size mais avec mémoire moindre
         #gradient_checkpointing=True, # TODO: not available but would be convenient to propagate to trnsformer trainer
@@ -156,25 +199,12 @@ else:
         epochs=args.epochs,
         num_gpus=1,
     ).create_config()
-    # TODO: out of domain evaluation: needs to modify train/val task names
-    # jiant_run_config = configurator.SimpleAPIMultiTaskConfigurator(
-    # task_config_base_path="./tasks/configs",
-    # task_cache_base_path="./cache",
-    # train_task_name_list=["mnli"],
-    # val_task_name_list=["mnli", "xnli_de", "xnli_zh"],
-    # train_batch_size=32,
-    # eval_batch_size=64,
-    # epochs=0.1,
-    # num_gpus=1,
-    # ).create_config()
-    #display.show_json(jiant_run_config)
     ################# BUT ALSO THIS ########################"
-    # make all tasks point to the trained head ; could be any name ?
-    #jiant_run_config["taskmodels_config"]["task_to_taskmodel_map"] = {
-    # "mnli": "nli_model",
-    # "xnli_de": "nli_model",
-    # "xnli_zh": "nli_model",
-    #}
+    # make all tasks point to the trained head, which has TASK_NAMES in the config file (could be any name as long they are the same (?))
+    if args.ood !=[]:
+        for task_name in args.ood:
+            jiant_run_config["taskmodels_config"]["task_to_taskmodel_map"][task_name] = TASK_NAMES
+            print(f"ood task {task_name} pointed to model '{TASK_NAMES}'",file=sys.stderr)
     #os.makedirs("./run_configs/", exist_ok=True)
     #py_io.write_json(jiant_run_config, "./run_configs/jiant_run_config.json")
     
@@ -215,7 +245,7 @@ else:
         eval_every_steps=args.eval_every_step,
         no_improvements_for_n_evals=args.no_improvements_for_n_evals,
         write_val_preds=True,
-        write_test_preds=True if args.test else False,
+        #write_test_preds=True if args.test else False,
         fp16=args.fp16,
         do_train=True,
         do_val=True,
@@ -223,21 +253,6 @@ else:
         do_save=True,
         force_overwrite=True,
     )
-    ################################################""
-    # TODO: OUT OF DOMAIN RUN 
-    ######################
-    # run_args = main_runscript.RunConfiguration(
-    # jiant_task_container_config_path="./run_configs/jiant_run_config.json",
-    # output_dir="./runs/run1",
-    # hf_pretrained_model_name_or_path="xlm-roberta-base",
-    # model_path="./models/xlm-roberta-base/model/model.p",
-    # model_config_path="./models/xlm-roberta-base/model/config.json",
-    # learning_rate=1e-5,
-    # eval_every_steps=500,
-    # do_train=True,
-    # do_val=True,
-    # force_overwrite=True,
-    # )
 
 
     main_runscript.run_loop(run_args)
@@ -245,10 +260,10 @@ else:
     # predictions are stored only as torch tensors, this puts them in disrpt format
     # right now this only provably works for one task at a time
     # TODO: check pred file in multi-task exps
-    # TODO: relax assertion that nb predictions = nb of tokens (when truncated sequence because too long for transformer)
+    # [done] TODO: relax assertion that nb predictions = nb of tokens (when truncated sequence because too long for transformer)
     val_infile = os.path.join("runs",RUN_NAME,"val_preds.p")
     test_infile = os.path.join("runs",RUN_NAME,"test_preds.p")
-    for one_task in task_list:
+    for one_task in task_list+args.ood:
         if True: 
             outfile = os.path.join("runs",RUN_NAME,one_task+"_dev.txt")
             convert_prediction_to_disrpt(val_infile,one_task,outfile,task_dev_caches[one_task])
@@ -257,14 +272,18 @@ else:
                 convert_prediction_to_disrpt(test_infile,one_task,outfile,task_test_caches[one_task])
         #except:
         #    print("saved prediction not working with task:",one_task)
+        #-------------------
         # move a few files from the main task dir to the last run dir
         # best_model, config, metrics, prediction (dev)
-        # TODO: dev/test option       
+        # [done] TODO: dev/test option       
         last_exp_dir = get_last_run(os.path.join("runs",RUN_NAME))
-        files_to_move = [one_task+"_dev.txt","run_config.json","args.json","val_metrics.json","best_model.p","best_model.metadata.json"]
+        files_to_move = [one_task+"_dev.txt"]
+        # test should be run only once, no need to move it for subruns
         #if args.test: files_to_move.append(one_task+"_test.txt")
         for one_file in files_to_move:
             os.replace(os.path.join("runs",RUN_NAME,one_file),os.path.join(last_exp_dir,one_file))
-            
+    files_to_move = ["run_config.json","args.json","val_metrics.json","best_model.p","best_model.metadata.json"]
+    for one_file in files_to_move:
+        os.replace(os.path.join("runs",RUN_NAME,one_file),os.path.join(last_exp_dir,one_file))    
 
 if CO2_tracking: tracker.stop()
