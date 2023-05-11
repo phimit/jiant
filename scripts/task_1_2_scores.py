@@ -5,9 +5,13 @@
 
 ### Author : Laura Riviere
 
+# TODO:
+#  - use os.path.join for robust file pointing
+#  - add option split/conllu
+
 import subprocess as subp
 import argparse
-from . import seg_eval 
+import seg_eval 
 import os, re
 import pandas as pd
 from datetime import datetime
@@ -30,9 +34,11 @@ def get_stamp():
     return stamp
 
 class Evaluation:
-    def __init__(self, g:str, p:str):
+    def __init__(self, g:str, p:str,outdir=".",task_type="conllu"):
         self.g_dir = g
         self.p_dir = p
+        self.outdir = outdir
+        self.task_type = task_type 
         self.run = self.p_dir.split("/")[-2]
         print(f"---------------{self.run}")
         
@@ -45,18 +51,22 @@ class Evaluation:
         for corpus in CORPORA_all:
             i += 1
             print(f">>> {i} process {corpus}")
-            pred = f"{corpus}_dev.split.pred"
-            pred_path = f"{self.p_dir}{pred}"
+            pred = f"{corpus}_dev.{self.task_type}.pred"
+            pred_path = f"{self.p_dir}/{pred}"
             print(pred_path)
             if os.path.isfile(pred_path):
-                gold_path = f"{self.g_dir}/{corpus}/{corpus}_dev.tok"
+                if self.task_type=="split":
+                    suffix = "tok"
+                else:
+                    suffix = "conllu"
+                gold_path = f"{self.g_dir}/{corpus}/{corpus}_dev.{suffix}"
                 scores_dict = seg_eval.get_scores(gold_path, pred_path)
                 print(scores_dict)
                 self.conllu_scores.loc[len(self.conllu_scores)] = [scores_dict[key] for key in fields]
         print(self.conllu_scores)
 
     def print_dev_conllu(self):
-        out_dir = "../scores/"
+        out_dir = self.outdir
         file_name = f"{self.run}_scores_segmentation.csv"
         path = f"{out_dir}{file_name}"
         if os.path.isfile(f"{out_dir}{file_name}"):
@@ -70,10 +80,14 @@ if __name__ == "__main__":
 
     p.add_argument("golddir", help="gold directory")
     p.add_argument("preddir", help="predictions directory") # data_clean_all
+    p.add_argument("--outdir",default="scores",help="destination dir for storing score files")
+    p.add_argument("--task-type",default="conllu",choices=["conllu","tok","split"],help="conllu ou tok/split")
 
+    
     o = p.parse_args()
-
-    ev = Evaluation(o.golddir, o.preddir)
+    if o.task_type == "tok": o.task_type = "split"
+    
+    ev = Evaluation(o.golddir, o.preddir,outdir=o.outdir,task_type=o.task_type)
     
     ev.evaluate_dev_conllu()
     ev.print_dev_conllu()

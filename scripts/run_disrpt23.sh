@@ -9,9 +9,9 @@ bash train_split.sh
 bash train_ood.sh
 #bash train_merged.sh
 ###### D3. move predictions at same place and evaluate
-mkdir $EXP_DIR/predictions
-mkdir $EXP_DIR/predictions/conllu
-mkdir $EXP_DIR/predictions/split
+#mkdir -p $EXP_DIR/predictions
+mkdir -p $EXP_DIR/predictions/conllu
+mkdir -p $EXP_DIR/predictions/split
 python $JIANT_DIR/scripts/collect_preds.py $JIANT_DIR/runs/ $EXP_DIR/predictions/conllu --task-type conllu --model roberta-large --target dev
 python $JIANT_DIR/scripts/collect_preds.py $JIANT_DIR/runs/ $EXP_DIR/predictions/conllu  --task-type conllu --model roberta-large --target test
 python $JIANT_DIR/scripts/collect_preds.py $JIANT_DIR/runs/ $EXP_DIR/predictions/split --task-type tok --model roberta-large --target dev
@@ -19,5 +19,6 @@ python $JIANT_DIR/scripts/collect_preds.py $JIANT_DIR/runs/ $EXP_DIR/predictions
 
 ### call seg_eval and put everything in a file
 ### if this script is run multiple times, this will generate a different filename
-python $JIANT_DIR/scripts/task_1_2_scores.py  ${JIANT_DIR}/exp/tasks/data/disrpt23  $EXP_DIR/predictions/conllu
-python $JIANT_DIR/scripts/task_1_2_scores.py  ${JIANT_DIR}/exp/tasks/data/disrpt23  $EXP_DIR/predictions/split
+mkdir -p scores
+python $JIANT_DIR/scripts/task_1_2_scores.py  ${JIANT_DIR}/exp/tasks/data/disrpt23/  $EXP_DIR/predictions/conllu/ --outdir scores/ --task-type conllu
+python $JIANT_DIR/scripts/task_1_2_scores.py  ${JIANT_DIR}/exp/tasks/data/disrpt23/  $EXP_DIR/predictions/split/ --outdir scores/ --task-type tok
