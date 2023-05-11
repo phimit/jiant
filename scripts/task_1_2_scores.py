@@ -7,7 +7,7 @@
 
 import subprocess as subp
 import argparse
-import seg_eval 
+from . import seg_eval 
 import os, re
 import pandas as pd
 from datetime import datetime
@@ -68,8 +68,8 @@ class Evaluation:
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
 
-    p.add_argument("--golddir", "-g", help="gold directory")
-    p.add_argument("--preddir", "-p", help="predictions directory") # data_clean_all
+    p.add_argument("golddir", help="gold directory")
+    p.add_argument("preddir", help="predictions directory") # data_clean_all
 
     o = p.parse_args()
 

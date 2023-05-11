@@ -19,3 +19,5 @@ python $JIANT_DIR/scripts/collect_preds.py $JIANT_DIR/runs/ $EXP_DIR/predictions
 
 ### call seg_eval and put everything in a file
 ### if this script is run multiple times, this will generate a different filename
+python $JIANT_DIR/scripts/task_1_2_scores.py  ${JIANT_DIR}/exp/tasks/data/disrpt23  $EXP_DIR/predictions/conllu
+python $JIANT_DIR/scripts/task_1_2_scores.py  ${JIANT_DIR}/exp/tasks/data/disrpt23  $EXP_DIR/predictions/split
