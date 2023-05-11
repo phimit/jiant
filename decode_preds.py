@@ -12,7 +12,7 @@ TODO:
    x- more general : extract labels from task class
    x- check that the written predictions are indeed for each token, and not subtokens
    x- manage cached dataset to recover label_mask from tokeniczation
-    - check that no errors from tokenization / mismatch nb of preds, unless sequence is > max_seq_length
+   x- check that no errors from tokenization / mismatch nb of preds, unless sequence is > max_seq_length
     - generalise to train/val/test preds (just dev/validation for now)
 
 """
@@ -92,5 +92,11 @@ if __name__=="__main__":
     args = parser.parse_args()
     target = "test" if args.test else "val"
     
+    # safer to force this
+    if not(args.test):
+            outfile = args.task+"_dev.txt"
+    else:
+            outfile = args.task+"_test.txt"    
+    
     cache = caching.ChunkedFilesDataCache(os.path.join(args.cache_path,f"{args.task}/{target}"))
-    convert_prediction_to_disrpt(args.infile,args.task,args.outfile,cache,encoding=args.encoding)
+    convert_prediction_to_disrpt(args.infile,args.task,outfile,cache,encoding=args.encoding)

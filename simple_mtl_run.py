@@ -105,7 +105,7 @@ if not(args.predict_only):
             hf_pretrained_model_name_or_path=HF_PRETRAINED_MODEL_NAME,
             output_dir=f"./cache/{task_name}",
             max_seq_length=args.max_seq_length,
-            phases=["train", "val","test"]+ ([] if not(args.test) else ["test"]) ,
+            phases=["train", "val"]+ ([] if not(args.test) else ["test"]) ,
             smart_truncate = True,
         ))
     
@@ -191,7 +191,7 @@ else:
         val_task_name_list=TASK_NAMES.split()+args.ood,
         # TODO:
         #    - for sequential learning or merged corpora, this should be adapted to the list of subtask
-        #test_task_name_list=TASK_NAMES.split()+args.ood,
+        test_task_name_list=(TASK_NAMES.split()+args.ood) if args.test else [],
         train_batch_size=args.batch_size, # tony = 2!
         gradient_accumulation_steps =args.gradient_accumulation_steps, # à tester; équivalent à multiplier batch_size mais avec mémoire moindre
         #gradient_checkpointing=True, # TODO: not available but would be convenient to propagate to trnsformer trainer
@@ -245,7 +245,7 @@ else:
         eval_every_steps=args.eval_every_step,
         no_improvements_for_n_evals=args.no_improvements_for_n_evals,
         write_val_preds=True,
-        #write_test_preds=True if args.test else False,
+        write_test_preds=True if args.test else False,
         fp16=args.fp16,
         do_train=True,
         do_val=True,

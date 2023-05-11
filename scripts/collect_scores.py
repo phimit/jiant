@@ -18,7 +18,7 @@ import pandas as pds
 import os.path
 from glob import glob
 import json
-import shutil
+import shutil, sys
 from string import Template
 
 ############################################################################################
@@ -281,15 +281,18 @@ def copy_all_predictions(outdir,tasks,model,config=config,task_type="conllu",tar
     
     TODO: check for both for robustness
     """
+    if task_type == "tok":
+        task_type = "split"
     for task in tasks:
         # probably wouldnt work with MTL results
         #MTL = " " in task #MTL exp
-        #if True:
-        try: 
+        if True:
+        #try: 
             path = retrieve_expe_dir(task,task_type,model,config)
             old_format = (template==_prediction_file_template1)
             sep = "_" if old_format else "."
             corpus = sep.join(task.split("_")[:])
+            print(f"fetching results for {path}", file=sys.stderr)
             todo = []
             if target in {"val","dev","both"}:
                 todo = ["dev"]
@@ -302,10 +305,13 @@ def copy_all_predictions(outdir,tasks,model,config=config,task_type="conllu",tar
                     outfile = _prediction_file_template2.substitute(corpus=corpus.replace("_","."),task_type=task_type,target=one)
                 else:
                     outfile=""
-                shutil.copy2(os.path.join(last_run,prediction_file),os.path.join(outdir,outfile))
+                src_path = os.path.join(last_run,prediction_file)
+                target_path = os.path.join(outdir,outfile)
+                print(f"copying {src_path} --> {target_path}",file=sys.stderr)
+                shutil.copy2(src_path,target_path)
             
-        #else:
-        except:
+        else:
+        #except:
             print("could not find prediction data for",task,prediction_file)
         
 

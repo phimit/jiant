@@ -7,7 +7,7 @@ export CONLLU=("disrpt23_por_pdtb_crpc_conllu" "disrpt23_tha_pdtb_tdtb_conllu" "
 export CORPORA=("disrpt23_spa_rst_rststb_conllu" "disrpt23_spa_rst_sctb_conllu")
 
 export CUDA_DEVICE_ORDER=PCI_BUS_ID
-export CUDA_VISIBLE_DEVICES=2
+export CUDA_VISIBLE_DEVICES=0
 
 
 export MODEL=xlm-roberta-large
@@ -26,8 +26,8 @@ export MODEL=xlm-roberta-large
 
 
 
-for dataset in ${SPLIT[@]}; 
-#for dataset in disrpt23_spa_rst_merged_conllu disrpt23_eng_rst_merged_conllu disrpt23_zho_rst_merged_conllu; 
+#for dataset in ${CONLLU[@]}; 
+for dataset in disrpt23_spa_rst_sctb_conllu; 
 do
  #does not work for multitask setup
  #rm -rf ./cache/$dataset
@@ -35,6 +35,10 @@ do
  python simple_mtl_run.py "${dataset}" --model-name $MODEL --epochs 30 --eval-every-step 500 \
    --batch-size $BATCH_SIZE --gradient-accumulation-steps 4 --no_improvements_for_n_evals 10 \
 	 --sampling-strategy ProportionalMultiTaskSampler --max-seq-length 180 \
-	 --config-dir exp/tasks/configs/disrpt23 --freeze-layers $FROZEN
- 
+	 --config-dir exp/tasks/configs/disrpt23 --freeze-layers $FROZEN --test
 done; 
+# if we dont want to do the test / do it separately
+# 1) get the result dir (last run)
+# 2) bash scripts/predict_only.sh $RESULT_DIR
+# 3) convert the results using decode_preds.py 
+#done; 
