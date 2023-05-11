@@ -18,7 +18,7 @@ conda activate disrpt23_test
  on most systems, if you get the following running it should be enough
 
 ```
-pip install transformers pandas torch attrs
+pip install transformers pandas torch attrs seqeval Levenshtein nltk trankit numexpr codecarbon
 ```
 
 ## Setup 

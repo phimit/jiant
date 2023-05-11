@@ -17,4 +17,6 @@ mkdir $EXP_DIR/models
 python $JIANT_DIR/scripts/install_models.py xlm-roberta-base
 python $JIANT_DIR/scripts/install_models.py xlm-roberta-large
 # creating space to save results
-mkdir $EXP_DIR/runs
+mkdir $JIANT_DIR/runs
+# preprocessing .tok files to apply a sentence splitter and generate .split files 
+python $JIANT_DIR/scripts/split_sentences.py -m trankit --gpu $DISRPT23_DATADIR
