@@ -286,8 +286,8 @@ def copy_all_predictions(outdir,tasks,model,config=config,task_type="conllu",tar
     for task in tasks:
         # probably wouldnt work with MTL results
         #MTL = " " in task #MTL exp
-        if True:
-        #try: 
+        #if True:
+        try: 
             path = retrieve_expe_dir(task,task_type,model,config)
             old_format = (template==_prediction_file_template1)
             sep = "_" if old_format else "."
@@ -310,8 +310,8 @@ def copy_all_predictions(outdir,tasks,model,config=config,task_type="conllu",tar
                 print(f"copying {src_path} --> {target_path}",file=sys.stderr)
                 shutil.copy2(src_path,target_path)
             
-        else:
-        #except:
+        #else:
+        except:
             print("could not find prediction data for",task,prediction_file)
         
 

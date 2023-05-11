@@ -5,7 +5,9 @@ Instructions for running Melodi's Discret system for task 1 and 2 --- Disrpt 202
 
 -1 clone the repo somewhere
 
->> git clone git@github.com:phimit/jiant.git
+```
+git clone git@github.com:phimit/jiant.git
+```
 
 -2 create environment + install dependencies
 
@@ -30,3 +32,6 @@ bash scripts/setup_disrpt23.sh
 ```
 
 ## Training TASK 1 + 2 + evaluation
+```
+bash scripts/run_disrpt23.sh
+```
