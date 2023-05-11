@@ -4,6 +4,7 @@ export JIANT_DIR=/home/muller/Devel/jiant/
 ln -s /path/to/disrpt_data_dir ${JIANT_DIR}/exp/tasks/data/disrpt23
 
 ####################################
+export PYTHONPATH=$JIANT_DIR:$PYTHONPATH
 # locating disrpt23 datasets 
 export DISRPT23_DATADIR=${JIANT_DIR}/exp/tasks/data/disrpt23
 # setting dir for experiment result

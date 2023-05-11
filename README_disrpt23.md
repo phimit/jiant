@@ -9,14 +9,24 @@ Instructions for running Melodi's Discret system for task 1 and 2 --- Disrpt 202
 
 -2 create environment + install dependencies
 
->> conda create -n discut23_test python==3.10
->> cd jiant
->> conda activate disrpt23_test
+```conda create -n discut23_test python==3.10
+cd jiant
+conda activate disrpt23_test
+```
 
  ignore jiant requirements, which are not up to date / might crash
  on most systems, if you get the following running it should be enough
 
->> pip install transformers pandas torch
+```
+pip install transformers pandas torch attrs
+```
 
-* Setup 
+## Setup 
+Change the first two lines of setup_disrpt23.sh to point to your local installation + where data are located
+then 
 
+```
+bash scripts/setup_disrpt23.sh
+```
+
+## Training TASK 1 + 2 + evaluation
