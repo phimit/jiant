@@ -43,6 +43,7 @@ parser.add_argument("--sampling-strategy",default="ProportionalMultiTaskSampler"
 # todo: 
 #       an option for val/testing -> for test, needs to hack the task_config_path cos of error in metrics for test set
 parser.add_argument("--test",action="store_true",default=False,help="do the final test evaluation")
+# FIXME: not functional
 parser.add_argument("--predict-only",action="store_true",default=False,help="prediction on val/test without training; model-path needs to be set and model-name must indicate the base model ")
 
 # TODO: write corresponding code in run below
@@ -50,7 +51,7 @@ parser.add_argument("--predict-only",action="store_true",default=False,help="pre
 #    - 0-shot eval for instance on the pdtb/tedm data
 #    - merged corpora, where eval happens on the separate corpora, seen as "ood" tasks for the main model (although they were in the merged train)
 #      list of ood will be list of tasks, eg disrpt23_tur_pdtb_tedm_conllu, with corresponding config files
-parser.add_argument("--ood",default="",help="list of comma separated out-of-domain evaluation tasks their config files need to exist and have no train;")
+parser.add_argument("--ood",default="",help="list of comma separated out-of-domain evaluation tasks; their config files need to exist and have no train;")
 parser.add_argument("--batch-size",default=16,type=int,help="")
 parser.add_argument("--gradient-accumulation-steps",default=4,type=int,help="delaying gradient update to allow for larger effective batches")
 parser.add_argument("--epochs",default=1,type=float,help="nb of epochs for training")

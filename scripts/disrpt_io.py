@@ -346,7 +346,7 @@ class Document:
         for s in trk_sentences["sentences"]:
             sentences.append(s["text"])
         return sentences
-
+    # TODO: debug option to for warnings on/off
     def _remap_tokens(self,split_sentences):
         """remap tokens from sentence splitting to the token original information"""
         #return split_sentences
@@ -359,7 +359,7 @@ class Document:
         try:
             assert orig_token_nb==split_token_nb
         except:
-            print("ERROR wrong nb of tokens",orig_token_nb,"initially but",split_token_nb,"after split",file=sys.stderr)
+            print("WARNING wrong nb of tokens",orig_token_nb,"initially but",split_token_nb,"after split",file=sys.stderr)
         #raise NotImplementedError
         new_sentences = []
         position = 0
@@ -391,13 +391,13 @@ class Document:
                 except:
                     # TODO: check next token can be recovered
                     # pb with chinese punctuation difference codes ?
-                    print(f"WARNING === Token mismatch: {j,toks[j].form,new_toks[new_j]} \n {toks} \n {new_toks}",file=sys.stderr)
+                    #print(f"WARNING === Token mismatch: {j,toks[j].form,new_toks[new_j]} \n {toks} \n {new_toks}",file=sys.stderr)
                     # first case: within the same sentence (unlikely if a token was split by a punctuation)
                     if j!= len(toks)-1:
                         if len(toks[j].form)!=len(new_toks[new_j]): # if same length this is probably just an encoding problem (chinese cases) so just ignore it
-                            print(f"INFO: split token still within the sentence {j,toks[j].form,new_toks[new_j]} ... should not happen",file=sys.stderr)
+                            #print(f"INFO: split token still within the sentence {j,toks[j].form,new_toks[new_j]} ... should not happen",file=sys.stderr)
                             if toks[j].form==new_toks[new_j]+new_toks[new_j+1]:
-                                print(f"INFO: split token correctly identified as {j,toks[j].form,new_toks[new_j]+new_toks[new_j+1]} ... advancing to next one",file=sys.stderr)
+                                #print(f"INFO: split token correctly identified as {j,toks[j].form,new_toks[new_j]+new_toks[new_j+1]} ... advancing to next one",file=sys.stderr)
                                 shift = shift + 1
                     # second case: the sentence ends here and next token is in the next split sentence, which necessarily exists (?)
                     else:
@@ -406,12 +406,15 @@ class Document:
                             next_token = split_sentences[i+1].split()[0]
                             skip_first_token = True
                             if toks[j].form==new_toks[new_j]+next_token: 
-                                print(f"INFO: token can be recoverd: ",end="",file=sys.stderr)
+                                pass
+                                #print(f"INFO: token can be recoverd: ",end="",file=sys.stderr)
                             else:
-                                print(f"INFO: token can still not be recoverd: ",end="",file=sys.stderr)
-                            print(toks[j].form,new_toks[new_j]+next_token,file=sys.stderr)
+                                pass
+                                #print(f"INFO: token can still not be recoverd: ",end="",file=sys.stderr)
+                            #print(toks[j].form,new_toks[new_j]+next_token,file=sys.stderr)
                         else:
-                            print(f"WARNING === unmatched token at end of document",new_toks[new_j],file=sys.stderr)
+                            pass
+                            #print(f"WARNING === unmatched token at end of document",new_toks[new_j],file=sys.stderr)
                             # in theory should not happen
                     # the next starting position has to be put back ? no
                     # position = position - 1
@@ -495,7 +498,7 @@ class Corpus:
         if info in Corpus.META_types:
             meta_type = Corpus.META_types[info]
         else:# TODO should send a warning
-            print("WARNING: bad meta line",info, value,data_line,file=sys.stderr)
+            #print("WARNING: bad meta line",info, value,data_line,file=sys.stderr)
             meta_type, value = "",""
         return meta_type,value.strip()
 

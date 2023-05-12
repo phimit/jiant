@@ -1,15 +1,14 @@
-export CUDA_DEVICE_ORDER=PCI_BUS_ID
-export CUDA_VISIBLE_DEVICES=2
+# train corpora associated to ood datasets
+# and evaluate both at the same time
+
+#export CUDA_DEVICE_ORDER=PCI_BUS_ID
+#export CUDA_VISIBLE_DEVICES=2
 
 
 export SPLIT=("disrpt23_tha_pdtb_tdtb_split" "disrpt23_deu_rst_pcc_split" "disrpt23_eng_rst_gum_split" "disrpt23_eng_rst_rstdt_split" "disrpt23_eng_sdrt_stac_split" "disrpt23_eus_rst_ert_split" "disrpt23_fas_rst_prstc_split" "disrpt23_fra_sdrt_annodis_split" "disrpt23_ita_pdtb_luna_split" "disrpt23_nld_rst_nldt_split" "disrpt23_por_rst_cstn_split" "disrpt23_rus_rst_rrt_split" "disrpt23_spa_rst_rststb_split" "disrpt23_spa_rst_sctb_split" "disrpt23_zho_dep_scidtb_split" "disrpt23_zho_pdtb_cdtb_split" "disrpt23_zho_rst_gcdt_split" "disrpt23_zho_rst_sctb_split")
 
 export CONLLU=("disrpt23_tha_pdtb_tdtb_conllu" "disrpt23_deu_rst_pcc_conllu" "disrpt23_eng_rst_gum_conllu" "disrpt23_eng_rst_rstdt_conllu" "disrpt23_eng_sdrt_stac_conllu" "disrpt23_eus_rst_ert_conllu" "disrpt23_fas_rst_prstc_conllu" "disrpt23_fra_sdrt_annodis_conllu" "disrpt23_ita_pdtb_luna_conllu" "disrpt23_nld_rst_nldt_conllu" "disrpt23_por_rst_cstn_conllu" "disrpt23_rus_rst_rrt_conllu" "disrpt23_spa_rst_rststb_conllu" "disrpt23_spa_rst_sctb_conllu" "disrpt23_zho_dep_scidtb_conllu" "disrpt23_zho_pdtb_cdtb_conllu" "disrpt23_zho_rst_gcdt_conllu" "disrpt23_zho_rst_sctb_conllu")
 
-# these are done separately to have a specific transfer configuration
-#export OOD_CONLLU=("disrpt23_tur_pdtb_tdb_conllu disrpt23_tur_pdtb_tedm_conllu" "disrpt23_eng_dep_scidtb_conllu disrpt23_eng_dep_covdtb_conllu" "disrpt23_eng_pdtb_pdtb_conllu disrpt23_eng_pdtb_tedm_conllu" "disrpt23_por_pdtb_crpc_conllu disrpt23_por_pdtb_tedm_conllu")
-
-#export OOD_SPLIT=("disrpt23_tur_pdtb_tdb_split disrpt23_tur_pdtb_tedm_split" "disrpt23_eng_dep_scidtb_split disrpt23_eng_dep_covdtb_split" "disrpt23_eng_pdtb_pdtb_split disrpt23_eng_pdtb_tedm_split" "disrpt23_por_pdtb_crpc_split disrpt23_por_pdtb_tedm_split")
 
 export MODEL=xlm-roberta-large
 #export MODEL=bert-base-multilingual-uncased

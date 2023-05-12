@@ -1,4 +1,4 @@
-Instructions for running Melodi's Discret system for task 1 and 2 --- Disrpt 2023 
+Instructions for running Melodi's Discut system for task 1 and 2 --- Disrpt 2023 
 =====================================================================================
 
 ## Installation 
@@ -7,6 +7,10 @@ Instructions for running Melodi's Discret system for task 1 and 2 --- Disrpt 202
 
 ```
 git clone git@github.com:phimit/jiant.git
+```
+or
+```
+git clone https://github.com/phimit/jiant.git
 ```
 
 -2 create environment + install dependencies
@@ -25,6 +29,7 @@ pip install transformers pandas torch attrs seqeval Levenshtein nltk trankit num
 ```
 
 ## Setup 
+You have to modif the script before running it: 
 Change the first two lines of setup_disrpt23.sh to point to your local installation + where data are located
 then 
 
@@ -33,6 +38,14 @@ bash scripts/setup_disrpt23.sh
 ```
 
 ## Training TASK 1 + 2 + evaluation
+NB: This uses environment variables defined in setup; if you make a run in a different terminal, you have to reset them in run_disrpt23.sh (cf comments in the script)
+
 ```
 bash scripts/run_disrpt23.sh
+```
+If you have access to multiple GPUs and want to restrict to a given card
+you can type e.g. 
+
+```
+CUDA_VISIBLE_DEVICES=0 bash scripts/run_disrpt23.sh
 ```
