@@ -162,7 +162,7 @@ if __name__ == "__main__":
     arg_lang = args.lang
     # read the dir content
     # TODO: check it is a dir
-    subcorpora_path = [x for x in glob(os.path.join(corpus_path,'tur*')) if os.path.isdir(x)]
+    subcorpora_path = [x for x in glob(os.path.join(corpus_path,'*')) if os.path.isdir(x)]
     #print(subcorpora_path)
     stats = []
     for subcorpus_path in subcorpora_path:
