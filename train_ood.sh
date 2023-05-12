@@ -39,3 +39,16 @@ python simple_mtl_run.py "$1" --model-name $MODEL --epochs $EPOCHS --eval-every-
 	--no_improvements_for_n_evals 10 --sampling-strategy ProportionalMultiTaskSampler --max-seq-length 180\
 	--config-dir exp/tasks/configs/disrpt23 --freeze-layers $FROZEN --ood $2 --test        
 done; 
+
+for dataset in "disrpt23_tur_pdtb_tdb_split disrpt23_tur_pdtb_tedm_split" "disrpt23_eng_dep_scidtb_split disrpt23_eng_dep_covdtb_split" "disrpt23_eng_pdtb_pdtb_split disrpt23_eng_pd\
+tb_tedm_split" "disrpt23_por_pdtb_crpc_split disrpt23_por_pdtb_tedm_split"; 
+do
+echo "training on ..." $dataset
+set -- $dataset
+echo "=== and doing OOD task" $2 
+set -x
+python simple_mtl_run.py "$1" --model-name $MODEL --epochs $EPOCHS --eval-every-step 500 \
+	--batch-size $BATCH_SIZE --gradient-accumulation-steps 4 \
+	--no_improvements_for_n_evals 10 --sampling-strategy ProportionalMultiTaskSampler --max-seq-length 180\
+	--config-dir exp/tasks/configs/disrpt23 --freeze-layers $FROZEN --ood $2 --test        
+done; 

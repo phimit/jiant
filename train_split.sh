@@ -2,7 +2,7 @@ export CUDA_DEVICE_ORDER=PCI_BUS_ID
 export CUDA_VISIBLE_DEVICES=0
 
 
-export SPLIT=("disrpt23_tha_pdtb_tdtb_split" "disrpt23_deu_rst_pcc_split" "disrpt23_eng_rst_gum_split" "disrpt23_eng_rst_rstdt_split" "disrpt23_eng_sdrt_stac_split" "disrpt23_eus_rst_ert_split" "disrpt23_fas_rst_prstc_split" "disrpt23_fra_sdrt_annodis_split" "disrpt23_ita_pdtb_luna_split" "disrpt23_nld_rst_nldt_split" "disrpt23_por_rst_cstn_split" "disrpt23_rus_rst_rrt_split" "disrpt23_spa_rst_rststb_split" "disrpt23_spa_rst_sctb_split" "disrpt23_zho_dep_scidtb_split" "disrpt23_zho_pdtb_cdtb_split" "disrpt23_zho_rst_gcdt_split" "disrpt23_zho_rst_sctb_split")
+export  SPLIT=("disrpt23_tha_pdtb_tdtb_split" "disrpt23_deu_rst_pcc_split" "disrpt23_eng_rst_gum_split" "disrpt23_eng_rst_rstdt_split" "disrpt23_eng_sdrt_stac_split" "disrpt23_eus_rst_ert_split" "disrpt23_fas_rst_prstc_split" "disrpt23_fra_sdrt_annodis_split" "disrpt23_ita_pdtb_luna_split" "disrpt23_nld_rst_nldt_split" "disrpt23_por_rst_cstn_split" "disrpt23_rus_rst_rrt_split" "disrpt23_spa_rst_rststb_split" "disrpt23_spa_rst_sctb_split" "disrpt23_zho_dep_scidtb_split" "disrpt23_zho_pdtb_cdtb_split" "disrpt23_zho_rst_gcdt_split" "disrpt23_zho_rst_sctb_split")
 
 export CONLLU=("disrpt23_tha_pdtb_tdtb_conllu" "disrpt23_deu_rst_pcc_conllu" "disrpt23_eng_rst_gum_conllu" "disrpt23_eng_rst_rstdt_conllu" "disrpt23_eng_sdrt_stac_conllu" "disrpt23_eus_rst_ert_conllu" "disrpt23_fas_rst_prstc_conllu" "disrpt23_fra_sdrt_annodis_conllu" "disrpt23_ita_pdtb_luna_conllu" "disrpt23_nld_rst_nldt_conllu" "disrpt23_por_rst_cstn_conllu" "disrpt23_rus_rst_rrt_conllu" "disrpt23_spa_rst_rststb_conllu" "disrpt23_spa_rst_sctb_conllu" "disrpt23_zho_dep_scidtb_conllu" "disrpt23_zho_pdtb_cdtb_conllu" "disrpt23_zho_rst_gcdt_conllu" "disrpt23_zho_rst_sctb_conllu")
 
@@ -27,7 +27,7 @@ export MODEL=xlm-roberta-large
 
 export EPOCHS=0.01
 
-for dataset in ${CONLLU[@]}; 
+for dataset in ${SPLIT[@]}; 
 #for dataset in disrpt23_spa_rst_merged_conllu disrpt23_eng_rst_merged_conllu disrpt23_zho_rst_merged_conllu; 
 do
  echo "training on ..." $dataset
