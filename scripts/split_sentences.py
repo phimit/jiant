@@ -120,7 +120,7 @@ def cmdline_args():
     p.add_argument("--suffix",default="",help="add given suffix to each resulting file")
     p.add_argument("-s","--stats-conllu",default=False, action='store_true',help="only compute sentence stats on conllu corpora")
     p.add_argument("--gpu",default=False, action='store_true',help="use GPU")
-
+    p.add_argument("--restrict",default=None,help="string pattern to restrict to some subcorpora eg 'eng*' ; default: None-> do everything")
 
     return(p.parse_args())
 
@@ -162,7 +162,12 @@ if __name__ == "__main__":
     arg_lang = args.lang
     # read the dir content
     # TODO: check it is a dir
-    subcorpora_path = [x for x in glob(os.path.join(corpus_path,'*')) if os.path.isdir(x)]
+    if args.restrict:
+        pattern = args.restrict
+    else:
+        pattern = "*"
+    
+    subcorpora_path = [x for x in glob(os.path.join(corpus_path,pattern)) if os.path.isdir(x)]
     #print(subcorpora_path)
     stats = []
     for subcorpus_path in subcorpora_path:
