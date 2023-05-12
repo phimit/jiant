@@ -1,5 +1,9 @@
 ########## (D) training and prediction ####################
-
+# This needs the following env variables, defined in setup
+# if you launch the training separately from setup
+# you have to reset them here, eg
+#export JIANT_DIR=/home/muller/Devel/jiant
+#export EXP_DIR=${JIANT_DIR}/exp/
 ###### D.1 corpus grouping #########
 # skipped
 
