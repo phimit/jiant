@@ -11,7 +11,8 @@ git clone git@github.com:phimit/jiant.git
 
 -2 create environment + install dependencies
 
-```conda create -n discut23_test python==3.10
+```
+conda create -n discut23_test python==3.10
 cd jiant
 conda activate disrpt23_test
 ```
