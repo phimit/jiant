@@ -20,8 +20,7 @@ import os, sys
 import argparse
 from codecarbon import EmissionsTracker
 
-
-EXP_DIR = "/home/muller/Devel/jiant/exp"
+EXP_DIR =  os.environ.get("EXP_DIR","/home/muller/Devel/jiant/exp")
 DATA_DIR = os.path.join(EXP_DIR,"tasks","configs")
 
 parser = argparse.ArgumentParser()
