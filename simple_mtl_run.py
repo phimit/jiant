@@ -17,6 +17,7 @@ import jiant.utils.display as display
 from decode_preds import convert_prediction_to_disrpt, get_last_run
 #from datasets import load_dataset_builder
 import os, sys
+import glob
 import argparse
 from codecarbon import EmissionsTracker
 
@@ -278,8 +279,12 @@ else:
         # [done] TODO: dev/test option       
         last_exp_dir = get_last_run(os.path.join("runs",RUN_NAME))
         files_to_move = [one_task+"_dev.txt"]
-        # test should be run only once, no need to move it for subruns
-        #if args.test: files_to_move.append(one_task+"_test.txt")
+        # test should be run only once, no need to move it for subruns, but it makes it easier to collect scores to treat them like dev
+        if args.test:
+            # ood tasks will be in their corresponding training corpus so just move every pred file
+            pred_test_files = glob.glob("disrpt23*_test.txt")
+            for one in pred_test_files:
+                files_to_move.append(one)
         for one_file in files_to_move:
             os.replace(os.path.join("runs",RUN_NAME,one_file),os.path.join(last_exp_dir,one_file))
     files_to_move = ["run_config.json","args.json","val_metrics.json","best_model.p","best_model.metadata.json"]

@@ -300,15 +300,22 @@ def copy_all_predictions(outdir,tasks,model,config=config,task_type="conllu",tar
                 todo.append("test")
             for one in todo: 
                 last_run = get_last_run(path)
-                prediction_file = template.substitute(corpus=corpus,task_type=task_type,target=one)
-                if old_format:# let's normalise this to template2
-                    outfile = _prediction_file_template2.substitute(corpus=corpus.replace("_","."),task_type=task_type,target=one)
-                else:
-                    outfile=""
-                src_path = os.path.join(last_run,prediction_file)
-                target_path = os.path.join(outdir,outfile)
-                print(f"copying {src_path} --> {target_path}",file=sys.stderr)
-                shutil.copy2(src_path,target_path)
+                # FIXME we assume the old format for now to handle ood more easily
+                for one_file in glob(f"{last_run}/disrpt*{one}.txt"): # eg disrpt23_eng_pdtb_pdtb_conllu_test.txt
+                    #prediction_file = template.substitute(corpus=corpus,task_type=task_type,target=one)
+                    if old_format:# let's normalise this to template2
+                        _, lg, fr, name, task_type, targetxt = one_file.split("/")[-1].split("_")
+                        corpus = f"{lg}_{fr}_{name}"
+                        prediction_file = one_file
+                        outfile = _prediction_file_template2.substitute(corpus=corpus.replace("_","."),task_type=task_type,target=one)
+                    else:
+                        # FIXME: will not work with format 2
+                        outfile=""
+                        prediction_file = one_file
+                    src_path = os.path.join(last_run,prediction_file)
+                    target_path = os.path.join(outdir,outfile)
+                    print(f"copying {src_path} --> {target_path}",file=sys.stderr)
+                    shutil.copy2(src_path,target_path)
             
         #else:
         except:
