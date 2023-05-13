@@ -49,3 +49,10 @@ you can type e.g.
 ```
 CUDA_VISIBLE_DEVICES=0 bash scripts/run_disrpt23.sh
 ```
+
+Once this is done, you'll have
+
+  - runs in runs/ with logs, models
+  - predictions in exp/predictions/
+  - all scores listed in scores/ directly
+
