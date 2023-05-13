@@ -6,6 +6,7 @@ Also computes some stats about precision of sentence-beginning segment
 
 # FIXME: 
 # TODO
+# - add cutoff baseline for oral w/o punctuation -> ita.tok
 # - stats on sentence token nb distribution 
 #     - tokens
 #     - subtokens via transformer (more useful)
@@ -113,7 +114,7 @@ def cmdline_args():
     p.add_argument("corpus_path",
                 help="path to a subcorpus directory")
     p.add_argument("--lang", default=None,help="corpus language (will be determined automatically if not specified)")
-    p.add_argument("-m", "--model", choices=["ersatz","stanza","trankit","baseline"], default="trankit",
+    p.add_argument("-m", "--model", choices=["ersatz","stanza","trankit","baseline","cutoff"], default="trankit",
                 help="sentence splitter model")
     p.add_argument("-o", "--output-path", default="sentence_split_stats.csv",
                 help="file to save stats in")
@@ -167,6 +168,11 @@ if __name__ == "__main__":
     else:
         pattern = "*"
     
+    # eg: oral corpus for which no splitter is useful (no punctuation)
+    forced_method = {
+        "ita.pdtb.luna": "cutoff",
+    }
+
     subcorpora_path = [x for x in glob(os.path.join(corpus_path,pattern)) if os.path.isdir(x)]
     #print(subcorpora_path)
     stats = []
@@ -176,8 +182,12 @@ if __name__ == "__main__":
         print(subcorpus_name)
         if not(len(subcorpus_name.split("."))==3):
             continue
+        if subcorpus_name in forced_method:
+            model = forced_method[subcorpus_name]
+        else:
+            model = args.model
         lang,framework,name = subcorpus_name.split(".")
-        if args.model=="trankit" and not(args.stats_conllu):
+        if model=="trankit" and not(args.stats_conllu):
             # needs to be initialized once only for performance
             lang = get_language(lang,args.model)
             if name=="gum" and lang=="english":
@@ -186,7 +196,7 @@ if __name__ == "__main__":
             kwargs["pipeline"] = pipeline
         #--- the real code
         if not(args.stats_conllu):
-            ok, res = split_corpus(subcorpus_path,subcorpus_name,model=args.model,suffix=args.suffix,**kwargs)
+            ok, res = split_corpus(subcorpus_path,subcorpus_name,model=model,suffix=args.suffix,**kwargs)
         #--- collect stats on sentence beginnings in conllu files
         else:
             ok, res = sentence_stats(subcorpus_path,subcorpus_name)

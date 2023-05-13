@@ -300,6 +300,8 @@ class Document:
         """default split for languages where we have issues re-aligning tokens for various reasons
         
         this just splits at every token that is a hard punctuations 
+
+        FIXME : this is not complete
         """
         sentence_id = 1
         sentences = []
@@ -315,6 +317,44 @@ class Document:
                     }
                 current = []
                 sentence += 1
+        if current!=[]:
+            meta = {"doc_id":orig_doc.meta["doc_id"],
+                    "sent_id" : sentence_id,
+                    "text": " ".join([x.form for x in current])
+                    }
+            sentences.append(Sentence(current,meta))
+        return sentences
+
+
+    def cutoff_split(self,cutoff=120,lang="default"):
+        """
+        default split for corpora with little or no punctuation (transcription etc)
+
+        just make a new sentence as soon as more than cutoff tokens 
+        """
+        sentence_id = 1
+        sentences = []
+        current = []
+        current_cpt = 1
+        orig_doc = self.sentences["tok"][0]
+        meta = {"doc_id":orig_doc.meta["doc_id"],
+                "sent_id" : sentence_id,
+                }
+        for token in orig_doc:
+            token.id = current_cpt
+            current_cpt += 1
+            current.append(token)
+            #print(token, token.id)
+            if len(current) >= cutoff:
+                #print(orig_doc.meta["doc_id"],token,current)
+                meta = {"doc_id":orig_doc.meta["doc_id"],
+                    "sent_id" : sentence_id,
+                    "text": " ".join([x.form for x in current])
+                    }
+                sentences.append(Sentence(current,meta))
+                current = []
+                sentence_id += 1
+                current_cpt = 1
         if current!=[]:
             meta = {"doc_id":orig_doc.meta["doc_id"],
                     "sent_id" : sentence_id,
@@ -448,9 +488,12 @@ class Document:
         elif model=="baseline":
             new_sentences = self.baseline_split(lang=lang)
             self.sentences["split"] = new_sentences
+        elif model == "cutoff":# FIXME should be a way to pass on the cutoff
+            new_sentences = self.cutoff_split(lang=lang)
+            self.sentences["split"] = new_sentences
         else:
             raise NotImplementedError
-        if model!="baseline":
+        if model!="baseline" and model!="cutoff":
             self.sentences["split"] = self._remap_tokens(new_sentences)
         return self.sentences["split"]
     

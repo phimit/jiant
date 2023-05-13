@@ -223,6 +223,7 @@ else:
     # }
     # ---- saving 
     # experimental additional meta_data
+    # FIXME: should frozen layers be saved here to ? otherwise appear only in args.json
     jiant_run_config["specific_hyper_parameters"] = hyper_params
     os.makedirs(os.path.join(EXP_DIR,"run_configs/"), exist_ok=True)
     # TODO: save under different names in each run logging directory
@@ -282,12 +283,10 @@ else:
         # test should be run only once, no need to move it for subruns, but it makes it easier to collect scores to treat them like dev
         if args.test:
             # ood tasks will be in their corresponding training corpus so just move every pred file
-            pred_test_files = glob.glob("disrpt23*_test.txt")
-            for one in pred_test_files:
-                files_to_move.append(one)
+            files_to_move.append(one_task+"_test.txt")
         for one_file in files_to_move:
             os.replace(os.path.join("runs",RUN_NAME,one_file),os.path.join(last_exp_dir,one_file))
-    files_to_move = ["run_config.json","args.json","val_metrics.json","best_model.p","best_model.metadata.json"]
+    files_to_move = ["run_config.json","args.json","val_metrics.json","best_model.p","best_model.metadata.json","val_preds.p"]+["test_preds.p"] if args.test else []
     for one_file in files_to_move:
         os.replace(os.path.join("runs",RUN_NAME,one_file),os.path.join(last_exp_dir,one_file))    
 

@@ -29,6 +29,9 @@ export MODEL_PATH=$1
 export PYTHONPATH=$BASE_PATH:$PYTHONPATH
 
 set -x
+# fix the run_config file which prolly doesnt include the test file reference if we have to do this after training
+python $JIANT_DIR/scripts/patch_test_config.py ${MODEL_PATH} $TASK
+# launch predictions
 python $JIANT_DIR/jiant/proj/main/runscript.py \
         run_with_continue \
         --ZZsrc ${BASE_PATH}/exp/models/${MODEL_TYPE}/config.json \
@@ -43,8 +46,9 @@ python $JIANT_DIR/jiant/proj/main/runscript.py \
         --write_test_preds
 
 # generate disrpt files from the prediction matrices
-# [done] FIXME the path is wrong it will be the current dir call, should be model_path 
-python $JIANT_DIR/decode_preds.py ${MODEL_PATH}/val_preds.p ${MODEL_PATH}/$2
+# 
+python $JIANT_DIR/decode_preds.py --test ${MODEL_PATH}/test_preds.p $TASK
+mv ${TASK}_test.txt ${MODEL_PATH}
 # if we have to do this by hand, the test prediction should be here
 # (shouldnt happen) but if they were generated during training they are in ${MODEL_PATH}/../test_preds.p
 #python $JIANT_DIR/decode_preds.py --test ${MODEL_PATH}/test_preds.p ${MODEL_PATH}/../$2 

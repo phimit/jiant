@@ -7,7 +7,7 @@ export CONLLU=("disrpt23_por_pdtb_crpc_conllu" "disrpt23_tha_pdtb_tdtb_conllu" "
 export CORPORA=("disrpt23_spa_rst_rststb_conllu" "disrpt23_spa_rst_sctb_conllu")
 
 export CUDA_DEVICE_ORDER=PCI_BUS_ID
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=$2
 
 
 export MODEL=xlm-roberta-large
@@ -27,7 +27,7 @@ export MODEL=xlm-roberta-large
 
 
 #for dataset in ${CONLLU[@]}; 
-for dataset in disrpt23_spa_rst_sctb_conllu; 
+for dataset in $1; 
 do
  #does not work for multitask setup
  #rm -rf ./cache/$dataset
