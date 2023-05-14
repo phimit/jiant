@@ -1,6 +1,7 @@
-Note: this is a fork of the jiant framework for multi-task learning in NLP, designed to ask various discourse related tasks (mainly discourse segmentation)
+Note: this is a fork of the jiant (a framework for multi-task learning in NLP).
+This fork is designed to address various discourse related tasks (mainly discourse segmentation and discourse markers identification).
 
-For the disrpt 2023 campaign see [README_disrtp23.md](./README_disrtp23.md)
+For instructions to reproduce results for the disrpt 2023 campaign see [README_disrpt23.md](./README_disrpt23.md)
 
 
 🚨**Update**🚨: As of 2021/10/17, the `jiant` project is no longer being actively maintained. This means there will be no plans to add new models, tasks, or features, or update support to new libraries.

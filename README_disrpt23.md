@@ -29,7 +29,7 @@ pip install transformers pandas torch attrs seqeval Levenshtein nltk trankit num
 ```
 
 ## Setup 
-You have to modif the script before running it: 
+You have to modify the script before running it: 
 Change the first two lines of setup_disrpt23.sh to point to your local installation + where data are located
 then 
 
