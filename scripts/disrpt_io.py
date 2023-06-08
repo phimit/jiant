@@ -541,7 +541,7 @@ class Corpus:
         if info in Corpus.META_types:
             meta_type = Corpus.META_types[info]
         else:# TODO should send a warning
-            #print("WARNING: bad meta line",info, value,data_line,file=sys.stderr)
+            print("WARNING: bad meta line",info, value,data_line,file=sys.stderr)
             meta_type, value = "",""
         return meta_type,value.strip()
 
@@ -592,6 +592,9 @@ class Corpus:
         if len(curr_token_list)>0 or len(sentences)>0:# final sentence for final document
             meta["text"] = " ".join((x.form for x in curr_token_list))
             sentences.append(Sentence(curr_token_list,meta))
+            #print("="*50)
+            #print(meta.keys())
+            #print(len(curr_token_list),len(sentences))
             docs.append(Document(sentences,meta["doc_id"],src=src))
         return docs
 

@@ -122,7 +122,7 @@ def cmdline_args():
     p.add_argument("-s","--stats-conllu",default=False, action='store_true',help="only compute sentence stats on conllu corpora")
     p.add_argument("--gpu",default=False, action='store_true',help="use GPU")
     p.add_argument("--restrict",default=None,help="string pattern to restrict to some subcorpora eg 'eng*' ; default: None-> do everything")
-
+    
     return(p.parse_args())
 
 if __name__ == "__main__":
@@ -130,6 +130,9 @@ if __name__ == "__main__":
     from tqdm import tqdm
     import pandas as pds
     import logging
+
+    DEBUG = False
+
 
     #logging.basicConfig(level=logging.DEBUG)
     os.environ["LOGLEVEL"] = "DEBUG"
@@ -167,6 +170,11 @@ if __name__ == "__main__":
         pattern = args.restrict
     else:
         pattern = "*"
+    
+    if DEBUG:
+        pattern = "eng.rst.gum"
+        corpus_path = "../exp/tasks/data/disrpt23/"
+        args.gpu = True
     
     # eg: oral corpus for which no splitter is useful (no punctuation)
     forced_method = {

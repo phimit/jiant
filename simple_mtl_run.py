@@ -44,8 +44,11 @@ parser.add_argument("--sampling-strategy",default="ProportionalMultiTaskSampler"
 # todo: 
 #       an option for val/testing -> for test, needs to hack the task_config_path cos of error in metrics for test set
 parser.add_argument("--test",action="store_true",default=False,help="do the final test evaluation")
-# FIXME: not functional
+# FIXME: not functional; right now this is managed by scripts/predict_only 
 parser.add_argument("--predict-only",action="store_true",default=False,help="prediction on val/test without training; model-path needs to be set and model-name must indicate the base model ")
+
+#
+parser.add_argument("--continue-with",default=None,help="start training with already existing fine-tuned model in argument, for sequential learning")
 
 # TODO: write corresponding code in run below
 # ood will cover two cases: 
@@ -69,7 +72,7 @@ parser.add_argument("--fp16",action="store_true",default=False,help="activate mi
 
 args = parser.parse_args()
 args_dict = vars(args)
-kept_args = ["batch_size","epochs","gradient_accumulation_steps","max_seq_length","sampling-strategy"]
+kept_args = ["batch_size","epochs","gradient_accumulation_steps","max_seq_length","sampling-strategy","continue_with"]
 
 hyper_params = {k:v for k,v in args_dict.items() if k in kept_args}
 
@@ -147,7 +150,9 @@ torch.cuda.empty_cache()
 
 if CO2_tracking: tracker.start()
 
+# FIXME: not tested/not working
 if args.predict_only: 
+    args.test = True
     jiant_run_config = configurator.SimpleAPIMultiTaskConfigurator( 
         task_config_base_path=DATA_DIR,
         task_cache_base_path="./cache",
@@ -170,7 +175,7 @@ if args.predict_only:
         output_dir=os.path.join("runs",RUN_NAME),
         hf_pretrained_model_name_or_path="roberta-base",
         model_path=os.path.join(args.model_path,"best_model.p"), # Loading the best model
-        #model_load_mode="partial",
+        model_load_mode="partial",
         model_config_path=os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"/config.json"),
         #learning_rate=1e-5,
         #eval_every_steps=500,
@@ -234,30 +239,56 @@ else:
     py_io.write_json(jiant_run_config,os.path.join(OUTPUT_DIR,"run_config.json"))
     display.show_json(jiant_run_config)
 
-    print("looking for model at : ",os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"model/model.p"))
+    if args.continue_with:
+        print("continuing training from ",args.continue_with)
+        run_args = main_runscript.RunConfiguration(
+            jiant_task_container_config_path=os.path.join(EXP_DIR,"run_configs/last_jiant_run_config.json"),
+            output_dir=OUTPUT_DIR,
+            hf_pretrained_model_name_or_path=HF_PRETRAINED_MODEL_NAME,
+            # this is the already fine-tune model path
+            model_path=os.path.join(args.continue_with,"best_model.p"),
+            model_load_mode="partial",
+            model_config_path=os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"/config.json"),
+            learning_rate=1e-5, # tony = 1e-3
+            freeze_layers = args.freeze_layers, # freeze layers in the encoder 
+            eval_every_steps=args.eval_every_step,
+            no_improvements_for_n_evals=args.no_improvements_for_n_evals,
+            write_val_preds=True,
+            write_test_preds=True if args.test else False,
+            fp16=args.fp16,
+            do_train=True,
+            do_val=True,
+            #keep_checkpoint_when_done=True,
+            do_save=True,
+            force_overwrite=True,
+            )
+        main_runscript.run_loop(run_args)
 
-    run_args = main_runscript.RunConfiguration(
-        jiant_task_container_config_path=os.path.join(EXP_DIR,"run_configs/last_jiant_run_config.json"),
-        output_dir=OUTPUT_DIR,
-        hf_pretrained_model_name_or_path=HF_PRETRAINED_MODEL_NAME,
-        model_path=os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"model/model.p"),
-        model_config_path=os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"/config.json"),
-        learning_rate=1e-5, # tony = 1e-3
-        freeze_layers = args.freeze_layers, # freeze layers in the encoder 
-        eval_every_steps=args.eval_every_step,
-        no_improvements_for_n_evals=args.no_improvements_for_n_evals,
-        write_val_preds=True,
-        write_test_preds=True if args.test else False,
-        fp16=args.fp16,
-        do_train=True,
-        do_val=True,
-        #keep_checkpoint_when_done=True,
-        do_save=True,
-        force_overwrite=True,
-    )
+    else:
+        print("looking for model at : ",os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"model/model.p"))
+
+        run_args = main_runscript.RunConfiguration(
+            jiant_task_container_config_path=os.path.join(EXP_DIR,"run_configs/last_jiant_run_config.json"),
+            output_dir=OUTPUT_DIR,
+            hf_pretrained_model_name_or_path=HF_PRETRAINED_MODEL_NAME,
+            model_path=os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"model/model.p"),
+            model_config_path=os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"/config.json"),
+            learning_rate=1e-5, # tony = 1e-3
+            freeze_layers = args.freeze_layers, # freeze layers in the encoder 
+            eval_every_steps=args.eval_every_step,
+            no_improvements_for_n_evals=args.no_improvements_for_n_evals,
+            write_val_preds=True,
+            write_test_preds=True if args.test else False,
+            fp16=args.fp16,
+            do_train=True,
+            do_val=True,
+            #keep_checkpoint_when_done=True,
+            do_save=True,
+            force_overwrite=True,
+        )
 
 
-    main_runscript.run_loop(run_args)
+        main_runscript.run_loop(run_args)
 
     # predictions are stored only as torch tensors, this puts them in disrpt format
     # right now this only provably works for one task at a time

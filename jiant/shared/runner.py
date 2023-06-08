@@ -69,12 +69,16 @@ def save_model_with_metadata(
     file_name="model",
     metadata: Optional[dict] = None,
 ):
+    #print(type(model_or_state_dict))
     if isinstance(model_or_state_dict, dict):
         state_dict = model_or_state_dict
     else:
         state_dict = torch_utils.get_model_for_saving(model_or_state_dict).state_dict()
 
     torch.save(state_dict, os.path.join(output_dir, f"{file_name}.p"))
+    # TODO: test if can save HF model for easier reuse / instead of torch save
+    #print(model_or_state_dict.keys())
+    #model_or_state_dict.save_pretrained(output_dir,from_pt=True)
     if metadata is not None:
         py_io.write_json(metadata, os.path.join(output_dir, f"{file_name}.metadata.json"))
 
