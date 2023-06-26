@@ -8,11 +8,13 @@
 # TODO:
 #  - use os.path.join for robust file pointing
 #  - add option split/conllu
+#  - find automatically all corpora in gold dir
 
 import subprocess as subp
 import argparse
 import seg_eval 
 import os, re
+from glob import glob
 import pandas as pd
 from datetime import datetime
 
@@ -21,7 +23,12 @@ from datetime import datetime
 2 situations : plain text (.toks), syntactically parsed text (.conllu)
 """
 
-CORPORA_all = ["deu.rst.pcc","eng.dep.covdtb","eng.dep.scidtb","eng.pdtb.pdtb","eng.pdtb.tedm","eng.rst.gum","eng.rst.rstdt","eng.sdrt.stac","eus.rst.ert","fas.rst.prstc","fra.sdrt.annodis","ita.pdtb.luna","nld.rst.nldt","por.pdtb.crpc","por.pdtb.tedm","por.rst.cstn","rus.rst.rrt","spa.rst.rststb","spa.rst.sctb","tha.pdtb.tdtb","tur.pdtb.tdb","tur.pdtb.tedm","zho.dep.scidtb","zho.pdtb.cdtb","zho.rst.gcdt","zho.rst.sctb"]
+CORPORA_all = ["deu.rst.pcc","eng.dep.covdtb","eng.dep.scidtb","eng.pdtb.pdtb","eng.pdtb.tedm","eng.rst.gum",
+               "eng.rst.rstdt","eng.sdrt.stac","eus.rst.ert","fas.rst.prstc","fra.sdrt.annodis","ita.pdtb.luna",
+               "nld.rst.nldt","por.pdtb.crpc","por.pdtb.tedm","por.rst.cstn","rus.rst.rrt","spa.rst.rststb",
+               "spa.rst.sctb","tha.pdtb.tdtb","tur.pdtb.tdb","tur.pdtb.tedm","zho.dep.scidtb","zho.pdtb.cdtb",
+               "zho.rst.gcdt","zho.rst.sctb"]
+extras = [f"fra.sdrt.cid{i+1}" for i in range(8)]
 #CORPORA_all = ["deu.rst.pcc","eng.dep.covdtb","eng.pdtb.pdtb","eng.pdtb.tedm","eus.rst.ert","fra.sdrt.annodis","nld.rst.nldt","por.pdtb.crpc","por.pdtb.tedm","rus.rst.rrt","spa.rst.rststb","spa.rst.sctb","tha.pdtb.tdtb","tur.pdtb.tdb","tur.pdtb.tedm","zho.dep.scidtb","zho.pdtb.cdtb","zho.rst.gcdt","zho.rst.sctb"]
 corpora_pb = ["eng.dep.scidtb","eng.rst.gum","eng.rst.rstdt","eng.sdrt.stac","fas.rst.prstc","ita.pdtb.luna","por.rst.cstn"]
 
@@ -48,7 +55,7 @@ class Evaluation:
         self.conllu_scores = pd.DataFrame(columns = fields)
 
         i = 0
-        for corpus in CORPORA_all:
+        for corpus in CORPORA_all+extras:
             i += 1
             print(f">>> {i} process {corpus}")
             pred = f"{corpus}_{target}.{self.task_type}.pred"

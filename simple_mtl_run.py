@@ -150,7 +150,7 @@ torch.cuda.empty_cache()
 
 if CO2_tracking: tracker.start()
 
-# FIXME: not tested/not working
+# FIXME: not tested/not working (but cf with_continue below, which could be a basis for this)
 if args.predict_only: 
     args.test = True
     jiant_run_config = configurator.SimpleAPIMultiTaskConfigurator( 
@@ -308,7 +308,7 @@ else:
         #-------------------
         # move a few files from the main task dir to the last run dir
         # best_model, config, metrics, prediction (dev)
-        # [done] TODO: dev/test option       
+        # [done] TODO: dev/test option   
         last_exp_dir = get_last_run(os.path.join("runs",RUN_NAME))
         files_to_move = [one_task+"_dev.txt"]
         # test should be run only once, no need to move it for subruns, but it makes it easier to collect scores to treat them like dev
@@ -317,6 +317,7 @@ else:
             files_to_move.append(one_task+"_test.txt")
         for one_file in files_to_move:
             os.replace(os.path.join("runs",RUN_NAME,one_file),os.path.join(last_exp_dir,one_file))
+    # FIXME: does not work with multi-task default names   
     files_to_move = ["run_config.json","args.json","val_metrics.json","best_model.p","best_model.metadata.json","val_preds.p"]+["test_preds.p"] if args.test else []
     for one_file in files_to_move:
         os.replace(os.path.join("runs",RUN_NAME,one_file),os.path.join(last_exp_dir,one_file))    
