@@ -38,7 +38,6 @@ test in
 notebook: Segmentation_dataset
 dataset lu correctement.
 
-Test lancement bach
 
 EXP_DIR=exp/
 MODEL_TYPE=roberta-base

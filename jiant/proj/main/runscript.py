@@ -51,7 +51,7 @@ class RunConfiguration(zconf.RunConfig):
     # ==== TODO : add specific adjustment of the model; ideally put in some general config file
     # but given at run time is ok
     # string is comma separated list of layers to freeze eg  1,2,3 or range 1-9
-    freeze_layers = zconf.attr(default="0-5", type=str)
+    freeze_layers = zconf.attr(default="", type=str)
 
     # Specialized config
     no_cuda = zconf.attr(action="store_true")
