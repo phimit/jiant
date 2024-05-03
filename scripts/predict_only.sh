@@ -9,7 +9,7 @@
 
 # FIXME: 
 #    x- run_config should come from actual experiment to preserve all parameters; fixed here for testing
-#    x- fix proper paths for everythin
+#    x- fix proper paths for everything
 # TODO:
 #    - pass everything as arguments of the script: base_path / model_type / cuda_device
 

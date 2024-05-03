@@ -1,0 +1,9 @@
+Training in sequence
+
+SEGMENTATION
+spa sctb -> spa rststb -> por cstn -> fra annodis -> eng rstdt -> rst gum -> dep scidtb -XXX-> test covid
+                                                                                        -> stac -> deu -> nld -> rus
+       then zho gcdt -> zho rst -> zho dep -> thai								   	       	  
+PDTB
+por -> ita -> eng -> tur -> zho  
+                  -XX> ted

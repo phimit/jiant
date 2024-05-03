@@ -1,0 +1,34 @@
+How to capture base encoder to do hotwire modifications
+(like freezing layers)
+
+HF models are wrapped in Jiant model (cf jiant/jiant/proj/main/modeling/primary.py)
+eg class JiantXLMRobertaModel(JiantTransformersModel)
+*** get_mlm_weights_dict -> access to weights once model is defined
+
+but where is this created ? 
+
+retrace: 
+jiant/jiant/proj/main/modeling/model_setup.py
+setup_jiant_model
+    create_taskmodel
+            taskmodel = JiantTaskModelFactory()(task, encoder, head, **taskmodel_kwargs)
+    returns primary.JiantModel  -> encoder
+
+
+top-level: 
+
+jiant/jiant/proj/main/runscript.py
+    setup_runner
+    sans doute là qu'il faut une option  86-xx
+    ou 106-116
+
+
+ds main c'est run_loop, qui appelle setup_runner qui crée un JiantRunner qui contient le modèle
+le setup_runner prend en params les args run configuration
+class RunConfiguration(zconf.RunConfig)
+[là aussi qu'on pourrait ajouter des args à passer au trainer transformer, comme check pointing gradient]
+
+
+runner has checkpoint in run_loop: can pass a checkpoint ; example ?
+    saved how ? does not matter ? -> is present in result directory anyway
+    (best_model.p)

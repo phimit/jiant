@@ -36,19 +36,19 @@ def get_last_run(path):
         return None
     return max(last)
 
-def convert_prediction_to_disrpt(infile,task,outfile,cache,encoding="utf8"):
-    """ infile: is the torch-saved tensor of predictions
-        task: name of tasktask eg disrpt23_fra_sdrt_annodis_conllu
-        outfile: filename where to save predictions or "stdout"
+def convert_prediction_to_disrpt(infile,task,outfile,cache,encoding="utf8",force_task_name=None):
+    """ - infile: is the torch-saved tensor of predictions
+        - task: name of tasktask eg disrpt23_fra_sdrt_annodis_conllu (only prefix + corpus type are used
+        but the full name is necessary as it is used in the prediction raw file); use task_name if different, for instance
+        because the results come from a "local" prediction
+        - outfile: filename where to save predictions or "stdout"
     """
     #corpus_name = task.split("_")[1]
-    print("converting ",task,file=sys.stderr)
+    #print("converting ",task,file=sys.stderr)
     #corpus_type = task.split("_")[2] if "_" in task else ""
-
-    
     
     if task.startswith("disrpt"):
-        campaign, corpus_lang, corpus_type, corpus_name, setup = task.split("_")
+        campaign, corpus_lang, corpus_type, *_ = task.split("_")
         if corpus_type == "pdtb": 
             task_type = DisrptConnTask
         else: 
@@ -64,7 +64,8 @@ def convert_prediction_to_disrpt(infile,task,outfile,cache,encoding="utf8"):
     info_labels = F1TaggingEvaluationScheme.get_labels_from_cache_and_examples(task_type, cache,[])
     
     # contains prediction and label_mask
-    data = torch.load(infile)[task]
+    task_key = task if not(force_task_name) else force_task_name
+    data = torch.load(infile)[task_key]
     if outfile=="stdout":
         outfile = sys.stdout
     else:

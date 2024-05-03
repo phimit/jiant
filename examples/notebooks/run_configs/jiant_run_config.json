@@ -1,0 +1,78 @@
+{
+  "task_config_path_dict": {
+    "mnli": "../../exp/tasks/configs/mnli_config.json",
+    "xnli_de": "../../exp/tasks/configs/xnli_de_config.json",
+    "xnli_zh": "../../exp/tasks/configs/xnli_zh_config.json"
+  },
+  "task_cache_config_dict": {
+    "mnli": {
+      "train": "../../exp/cache/mnli/train",
+      "val": "../../exp/cache/mnli/val",
+      "val_labels": "../../exp/cache/mnli/val_labels"
+    },
+    "xnli_de": {
+      "val": "../../exp/cache/xnli_de/val",
+      "val_labels": "../../exp/cache/xnli_de/val_labels"
+    },
+    "xnli_zh": {
+      "val": "../../exp/cache/xnli_zh/val",
+      "val_labels": "../../exp/cache/xnli_zh/val_labels"
+    }
+  },
+  "sampler_config": {
+    "sampler_type": "ProportionalMultiTaskSampler"
+  },
+  "global_train_config": {
+    "max_steps": 39270,
+    "warmup_steps": 3927
+  },
+  "task_specific_configs_dict": {
+    "mnli": {
+      "train_batch_size": 1,
+      "eval_batch_size": 1,
+      "gradient_accumulation_steps": 1,
+      "eval_subset_num": 500
+    },
+    "xnli_de": {
+      "train_batch_size": 1,
+      "eval_batch_size": 1,
+      "gradient_accumulation_steps": 1,
+      "eval_subset_num": 500
+    },
+    "xnli_zh": {
+      "train_batch_size": 1,
+      "eval_batch_size": 1,
+      "gradient_accumulation_steps": 1,
+      "eval_subset_num": 500
+    }
+  },
+  "taskmodels_config": {
+    "task_to_taskmodel_map": {
+      "mnli": "nli_model",
+      "xnli_de": "nli_model",
+      "xnli_zh": "nli_model"
+    },
+    "taskmodel_config_map": {
+      "mnli": null,
+      "xnli_de": null,
+      "xnli_zh": null
+    }
+  },
+  "task_run_config": {
+    "train_task_list": [
+      "mnli"
+    ],
+    "train_val_task_list": [
+      "mnli"
+    ],
+    "val_task_list": [
+      "mnli",
+      "xnli_de",
+      "xnli_zh"
+    ],
+    "test_task_list": []
+  },
+  "metric_aggregator_config": {
+    "metric_aggregator_type": "EqualMetricAggregator"
+  }
+}

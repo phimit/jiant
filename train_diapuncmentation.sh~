@@ -1,0 +1,29 @@
+# potential tasks: 
+# daseg_icsi daseg_ami
+# punctuation_icsi punctuation_ami
+export CUDA_DEVICE_ORDER=PCI_BUS_ID
+export CUDA_VISIBLE_DEVICES=0
+
+export MODEL=xlm-roberta-base
+#export MODEL=bert-base-multilingual-uncased
+#export MODEL=bigscience/bloom-1b1
+
+
+timestamp() {
+  date +"%s" # seconds since unix
+}
+
+
+for dataset  in "daseg_ami punctuation_ami"; 
+do
+    # FIXME: does not work for multitask setup
+    rm -rf ./cache/$dataset
+    echo "training on ..." $dataset
+    stamp="$(timestamp)"
+    echo "at : " $stamp
+    python simple_mtl_run.py "${dataset}" --co2 --model-name $MODEL --epochs 30 \
+                                          --eval-every-step 200 --batch 16 --gradient-accumulation-steps 4 --no_improvements_for_n_evals 10 \
+                                          --max-seq-length 200 --run-name run_${dataset}_${MODEL}
+    mv runs/run_${dataset}_${MODEL}/val_metrics.json "runs/run_${dataset}_${MODEL}/val_metrics_${stamp}.json"
+    mv runs/run_${dataset}_${MODEL}/run_config.json "runs/run_${dataset}_${MODEL}/run_config_${stamp}.json"
+done; 

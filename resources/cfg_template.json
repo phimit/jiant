@@ -1,0 +1,22 @@
+
+{
+  "task": "disrpt21",
+  "paths": {
+    "train": "",
+    "val": "",
+    "test": "$input_file"
+  },
+  "name": "disrpt23_prediction",
+  "kwargs": {
+    "corpus":"None",
+    "recurrent_layer": "None",
+    "rnn_config": {
+        "hidden_size":100,
+        "bidirectional":true,
+        "batch_first":true,
+        "bias":false,
+	"dropout":0.5
+    }
+  }
+}
+

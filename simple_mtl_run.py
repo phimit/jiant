@@ -4,7 +4,9 @@
 #        FIXME : bug in saving config file for expe (name hardcoded in jiant/proj/simple/runscript.py (function create_and_write_task_configs)
 #    /- external config
 #    /- argparse for all arguments
-#    - test/prediction mode
+#    - [should be priority] test/prediction mode == with-continue + no training
+#    - refactor: 
+#          this is a mess because of different training setups
 
 import jiant.proj.main.tokenize_and_cache as tokenize_and_cache
 import jiant.proj.main.export_model as export_model
@@ -44,7 +46,7 @@ parser.add_argument("--sampling-strategy",default="ProportionalMultiTaskSampler"
 # todo: 
 #       an option for val/testing -> for test, needs to hack the task_config_path cos of error in metrics for test set
 parser.add_argument("--test",action="store_true",default=False,help="do the final test evaluation")
-# FIXME: not functional; right now this is managed by scripts/predict_only 
+# FIXME: not functional; todo this will be managed by predict.py 
 parser.add_argument("--predict-only",action="store_true",default=False,help="prediction on val/test without training; model-path needs to be set and model-name must indicate the base model ")
 
 #
@@ -100,7 +102,7 @@ task_list = TASK_NAMES.split()
 # testing the data reader
 # TODO 0-shot: 0-shot tasks needs to be declared separately with phases = ["val"]
 # TODO testing: ? phrases = test ?
-if not(args.predict_only):
+if True: #not(args.predict_only):
     for task_name in task_list:
         #task_config_path=os.path.join(DATA_DIR,f"{task_name}_config.json")
         #print("config ?",task_config_path)
@@ -151,7 +153,7 @@ torch.cuda.empty_cache()
 if CO2_tracking: tracker.start()
 
 # FIXME: not tested/not working (but cf with_continue below, which could be a basis for this)
-if args.predict_only: 
+if False:#args.predict_only: 
     args.test = True
     jiant_run_config = configurator.SimpleAPIMultiTaskConfigurator( 
         task_config_base_path=DATA_DIR,
@@ -188,7 +190,7 @@ if args.predict_only:
 else:
     # should play with HF trainer, which accepts options like
     # per_device_train_batch_size = 8,
-    # gradient_accumulation_steps = 8 ~= batch 64 with less memory   
+    # [done] gradient_accumulation_steps = 8 ~= batch 64 with less memory   
 
     jiant_run_config = configurator.SimpleAPIMultiTaskConfigurator(
         task_config_base_path=DATA_DIR,
@@ -201,7 +203,7 @@ else:
         train_batch_size=args.batch_size, # tony = 2!
         gradient_accumulation_steps =args.gradient_accumulation_steps, # à tester; équivalent à multiplier batch_size mais avec mémoire moindre
         #gradient_checkpointing=True, # TODO: not available but would be convenient to propagate to trnsformer trainer
-        eval_batch_size=1,
+        eval_batch_size=8,
         epochs=args.epochs,
         num_gpus=1,
     ).create_config()
@@ -248,16 +250,17 @@ else:
             # this is the already fine-tune model path
             model_path=os.path.join(args.continue_with,"best_model.p"),
             model_load_mode="partial",
-            model_config_path=os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"/config.json"),
+            model_config_path=os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"config.json"),
             learning_rate=1e-5, # tony = 1e-3
             freeze_layers = args.freeze_layers, # freeze layers in the encoder 
             eval_every_steps=args.eval_every_step,
             no_improvements_for_n_evals=args.no_improvements_for_n_evals,
-            write_val_preds=True,
+            write_val_preds=not(args.predict_only),
             write_test_preds=True if args.test else False,
             fp16=args.fp16,
-            do_train=True,
-            do_val=True,
+            # predict only = no train, no eval on dev either
+            do_train=not(args.predict_only),
+            do_val=not(args.predict_only),
             #keep_checkpoint_when_done=True,
             do_save=True,
             force_overwrite=True,
@@ -272,7 +275,7 @@ else:
             output_dir=OUTPUT_DIR,
             hf_pretrained_model_name_or_path=HF_PRETRAINED_MODEL_NAME,
             model_path=os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"model/model.p"),
-            model_config_path=os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"/config.json"),
+            model_config_path=os.path.join(EXP_DIR,"models",HF_PRETRAINED_MODEL_NAME,"config.json"),
             learning_rate=1e-5, # tony = 1e-3
             freeze_layers = args.freeze_layers, # freeze layers in the encoder 
             eval_every_steps=args.eval_every_step,
@@ -294,12 +297,15 @@ else:
     # right now this only provably works for one task at a time
     # TODO: check pred file in multi-task exps
     # [done] TODO: relax assertion that nb predictions = nb of tokens (when truncated sequence because too long for transformer)
-    val_infile = os.path.join("runs",RUN_NAME,"val_preds.p")
-    test_infile = os.path.join("runs",RUN_NAME,"test_preds.p")
+    if not(args.predict_only): 
+        val_infile = os.path.join("runs",RUN_NAME,"val_preds.p")
+    if args.test:
+        test_infile = os.path.join("runs",RUN_NAME,"test_preds.p")
     for one_task in task_list+args.ood:
         if True: 
-            outfile = os.path.join("runs",RUN_NAME,one_task+"_dev.txt")
-            convert_prediction_to_disrpt(val_infile,one_task,outfile,task_dev_caches[one_task])
+            if not(args.predict_only):
+                outfile = os.path.join("runs",RUN_NAME,one_task+"_dev.txt")
+                convert_prediction_to_disrpt(val_infile,one_task,outfile,task_dev_caches[one_task])
             if args.test:
                 outfile = os.path.join("runs",RUN_NAME,one_task+"_test.txt")
                 convert_prediction_to_disrpt(test_infile,one_task,outfile,task_test_caches[one_task])
@@ -310,7 +316,9 @@ else:
         # best_model, config, metrics, prediction (dev)
         # [done] TODO: dev/test option   
         last_exp_dir = get_last_run(os.path.join("runs",RUN_NAME))
-        files_to_move = [one_task+"_dev.txt"]
+        files_to_move = []
+        if not(args.predict_only):
+            files_to_move.append(one_task+"_dev.txt")
         # test should be run only once, no need to move it for subruns, but it makes it easier to collect scores to treat them like dev
         if args.test:
             # ood tasks will be in their corresponding training corpus so just move every pred file
@@ -318,7 +326,8 @@ else:
         for one_file in files_to_move:
             os.replace(os.path.join("runs",RUN_NAME,one_file),os.path.join(last_exp_dir,one_file))
     # FIXME: does not work with multi-task default names   
-    files_to_move = ["run_config.json","args.json","val_metrics.json","best_model.p","best_model.metadata.json","val_preds.p"]+["test_preds.p"] if args.test else []
+    files_to_move = ["run_config.json","args.json"]+(["best_model.p","best_model.metadata.json",
+                                                     "val_metrics.json","val_preds.p"] if not(args.predict_only) else [])+(["test_preds.p"] if args.test else [])
     for one_file in files_to_move:
         os.replace(os.path.join("runs",RUN_NAME,one_file),os.path.join(last_exp_dir,one_file))    
 

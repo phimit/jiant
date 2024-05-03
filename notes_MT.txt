@@ -1,0 +1,109 @@
+Expés prélim MT 
+-----------------
+
+* June 2023
+Expés en fittant seulement les head + continuer en defreezant comme modèle discut (roberta-large 0-5 freezé)
+juste sur spa/conllu (et 10 epochs seulement)
+sur dev vs train séparé
+sctb: 0.896 vs 86.88  (+3)
+rststb: 0.9618 vs 96.19 (inchangé)
+
+en groupé: 
+sctb 0.874
+rststb 0.965
+
+en MT simple: 
+sctb: 0.892
+rststb:0.9576
+
+=========
+zho 
+
+* merged/groupé
+
+  "disrpt23_zho_rst_gcdt_conllu": 
+        "precision": 0.9119217081850534,
+        "recall": 0.9192825112107623,
+        "f1": 0.9155873157659669
+      
+  "disrpt23_zho_rst_sctb_conllu": 
+    
+        "precision": 0.55625,
+        "recall": 0.8640776699029126,
+        "f1": 0.6768060836501901
+      
+* sequence head seules + full
+ "disrpt23_zho_rst_gcdt_conllu":    
+        "precision": 0.9052173913043479,
+        "recall": 0.9336322869955157,
+        "f1": 0.919205298013245
+  "disrpt23_zho_rst_sctb_conllu":
+        "precision": 0.8055555555555556,
+        "recall": 0.8446601941747572,
+        "f1": 0.8246445497630333
+
+* MT simple
+disrpt23_zho_rst_gcdt_conllu
+"precision": 0.9224598930481284,
+        "recall": 0.91674047829938,
+        "f1": 0.9195912927587739
+disrpt23_zho_rst_sctb_conllu"
+ "precision": 0.7747747747747747,
+        "recall": 0.8349514563106796,
+        "f1": 0.8037383177570093
+        
+* train séparé (mais 30 epochs):
+92.69 (-0.7)
+79.05 (+3)
+
+=======================================
+german languages
+
+sequence head seules + full (moins bien que séparé -> grain trop gros ?)
+  "aggregated": 0.9586025433710101,
+  "disrpt23_deu_rst_pcc_split": 
+        "precision": 0.9405594405594405,
+        "recall": 0.9781818181818182,
+        "f1": 0.9590017825311942
+
+  "disrpt23_eng_dep_scidtb_split": {
+        "precision": 0.9712092130518234,
+        "recall": 0.9502347417840376,
+        "f1": 0.9606074988134787
+      }
+  "disrpt23_eng_rst_gum_split": {
+        "precision": 0.9307718933887158,
+        "recall": 0.9655296229802514,
+        "f1": 0.9478322171307719
+      }
+  "disrpt23_eng_rst_rstdt_split": {
+        "precision": 0.9597388465723613,
+        "recall": 0.9816360601001669,
+        "f1": 0.9705639614855571
+  "disrpt23_nld_rst_nldt_split": {
+        "precision": 0.9508670520231214,
+        "recall": 0.9591836734693877,
+        "f1": 0.9550072568940493
+      }
+    }
+
+=======================
+german + dutch 
+
+ "disrpt23_deu_rst_pcc_conllu": {
+    "loss": 0.0622207172548073,
+    "metrics": {
+      "major": 0.9638989169675091,
+      "minor": {
+        "precision": 0.956989247311828,
+        "recall": 0.9709090909090909,
+        "f1": 0.9638989169675091
+
+        "disrpt23_nld_rst_nldt_conllu": {
+    "loss": 0.05623825577508707,
+    "metrics": {
+      "major": 0.9662261380323054,
+      "minor": {
+        "precision": 0.9733727810650887,
+        "recall": 0.9591836734693877,
+        "f1": 0.9662261380323054

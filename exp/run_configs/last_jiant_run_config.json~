@@ -1,0 +1,50 @@
+{
+  "task_config_path_dict": {
+    "disrpt23_spa.rst.rststb": "exp/tasks/configs/disrpt23/disrpt23_spa.rst.rststb_config.json"
+  },
+  "task_cache_config_dict": {
+    "disrpt23_spa.rst.rststb": {
+      "train": "./cache/disrpt23_spa.rst.rststb/train",
+      "val": "./cache/disrpt23_spa.rst.rststb/val",
+      "val_labels": "./cache/disrpt23_spa.rst.rststb/val_labels"
+    }
+  },
+  "sampler_config": {
+    "sampler_type": "ProportionalMultiTaskSampler"
+  },
+  "global_train_config": {
+    "max_steps": 750,
+    "warmup_steps": 75
+  },
+  "task_specific_configs_dict": {
+    "disrpt23_spa.rst.rststb": {
+      "train_batch_size": 16,
+      "eval_batch_size": 1,
+      "gradient_accumulation_steps": 4,
+      "eval_subset_num": 500
+    }
+  },
+  "taskmodels_config": {
+    "task_to_taskmodel_map": {
+      "disrpt23_spa.rst.rststb": "disrpt23_spa.rst.rststb"
+    },
+    "taskmodel_config_map": {
+      "disrpt23_spa.rst.rststb": null
+    }
+  },
+  "task_run_config": {
+    "train_task_list": [
+      "disrpt23_spa.rst.rststb"
+    ],
+    "train_val_task_list": [
+      "disrpt23_spa.rst.rststb"
+    ],
+    "val_task_list": [
+      "disrpt23_spa.rst.rststb"
+    ],
+    "test_task_list": []
+  },
+  "metric_aggregator_config": {
+    "metric_aggregator_type": "EqualMetricAggregator"
+  }
+}
